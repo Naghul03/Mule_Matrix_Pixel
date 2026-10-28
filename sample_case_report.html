@@ -1,0 +1,174 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mule Matrix Investigation Case Report - 9dfe3bbe-242b-48fb-84ec-c0fc666c6222</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            line-height: 1.5;
+            padding: 40px;
+            margin: 0;
+        }
+        @media print {
+            body { background: white; color: black; padding: 20px; }
+            .no-print { display: none; }
+            .card { border: 1px solid #ccc !important; background: white !important; color: black !important; }
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { border-bottom: 2px solid #334155; padding-bottom: 20px; margin-bottom: 30px; }
+        .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; }
+        .badge-critical { background-color: #f43f5e; color: white; }
+        .badge-high { background-color: #ea580c; color: white; }
+        .badge-info { background-color: #0284c7; color: white; }
+        .badge-success { background-color: #10b981; color: white; }
+        .card { background-color: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+        .stat-val { font-size: 24px; font-weight: 700; color: #14b8a6; }
+        .stat-label { font-size: 12px; text-transform: uppercase; color: #94a3b8; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+        th { text-align: left; padding: 10px; border-bottom: 2px solid #475569; color: #94a3b8; }
+        td { padding: 10px; border-bottom: 1px solid #334155; }
+        .mono { font-family: monospace; font-size: 12px; }
+        .stop-box { border-left: 4px solid #f59e0b; background-color: #292524; padding: 16px; border-radius: 4px; margin: 20px 0; }
+        .footer { font-size: 12px; color: #64748b; margin-top: 40px; text-align: center; border-top: 1px solid #334155; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="margin: 0 0 8px 0; font-size: 28px; color: #38bdf8;">MULE MATRIX</h1>
+                    <div style="color: #94a3b8; font-size: 14px;">Official Investigation Dossier & Lineage Audit Report</div>
+                </div>
+                <div style="text-align: right;">
+                    <span class="badge badge-info">COMPLETED</span>
+                    <div style="margin-top: 6px; font-size: 12px; color: #94a3b8;">Generated: 2026-10-28 15:44:47 UTC</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="stat-label">Accounts Discovered</div>
+                <div class="stat-val">2</div>
+            </div>
+            <div class="card">
+                <div class="stat-label">Banks Crossed</div>
+                <div class="stat-val">2</div>
+            </div>
+            <div class="card">
+                <div class="stat-label">Transactions Traversed</div>
+                <div class="stat-val">1</div>
+            </div>
+            <div class="card">
+                <div class="stat-label">Max Hop Depth</div>
+                <div class="stat-val">1</div>
+            </div>
+        </div>
+
+        <div class="stop-box">
+            <strong style="color: #fbbf24;">Traversal Stop Reason:</strong> NO_ELIGIBLE_INCOMING_OR_OUTGOING_TRANSACTIONS
+            <div style="margin-top: 4px; font-size: 13px; color: #d6d3d1;">
+                Lineage traversal halted because: Trace ended; no further eligible settled transactions were observed within the simulation boundary.
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top: 0; color: #f1f5f9;">Trigger & Target Information</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 14px;">
+                <div><strong>Root Account:</strong> <span class="mono">ACC-0001-ICIX</span> (ICIX)</div>
+                <div><strong>Investigation ID:</strong> <span class="mono">9dfe3bbe-242b-48fb-84ec-c0fc666c6222</span></div>
+                <div><strong>Alert Linked:</strong> <span class="mono">1ca4a4e9-7dfd-41f6-8180-759eca337340</span></div>
+                <div><strong>Average Attribution Confidence:</strong> 95.0%</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top: 0; color: #f1f5f9;">Reconstructed Chronological Lineage Timeline</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Timestamp (UTC)</th>
+                        <th>From Account</th>
+                        <th>To Account</th>
+                        <th>Rail</th>
+                        <th>Amount</th>
+                        <th>Attribution Method</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td class="mono">2026-10-27T15:49:47.062177</td>
+                        <td><span class="mono">ACC-0004-HDFX</span> (HDFX)</td>
+                        <td><span class="mono">ACC-0001-ICIX</span> (ICIX)</td>
+                        <td>IMPS</td>
+                        <td style="font-weight: 600; color: #38bdf8;">₹118000.0</td>
+                        <td>DIRECT_FLOW</td>
+                        <td>95.0%</td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top: 0; color: #f1f5f9;">Discovered Network Nodes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Account Ref</th>
+                        <th>Bank</th>
+                        <th>Role / Direction</th>
+                        <th>Hop Depth</th>
+                        <th>Type</th>
+                        <th>Attributed Value</th>
+                        <th>Terminal Flag</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td class="mono">ACC-0001-ICIX</td>
+                        <td>ICIX (ICICI Synthetic Bank)</td>
+                        <td><span class="badge badge-info">ROOT</span></td>
+                        <td>0</td>
+                        <td>INDIVIDUAL</td>
+                        <td>₹115000.0</td>
+                        <td>
+                            
+                            -
+                            
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td class="mono">ACC-0004-HDFX</td>
+                        <td>HDFX (HDFC Synthetic Bank)</td>
+                        <td><span class="badge badge-info">BACKWARD</span></td>
+                        <td>1</td>
+                        <td>INDIVIDUAL</td>
+                        <td>₹118000.0</td>
+                        <td>
+                            
+                            <span class="badge badge-success">ORIGIN</span>
+                            
+                        </td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer">
+            Generated by Mule Matrix Explainable Lineage Platform | Synthetic Financial Network Simulation | Non-Production Audit Record
+        </div>
+    </div>
+</body>
+</html>

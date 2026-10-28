@@ -1,0 +1,446 @@
+MULE MATRIX
+End-to-End MVP Build Specification
+A simulation-first, explainable system for detecting suspected mule accounts and reconstructing cross-bank transaction lineage
+Implementation handoff for Antigravity
+
+0. Build mandate
+Build a fully runnable local prototype—not a mockup—using synthetic data. The system must let a user initiate transfers, observe simulated multi-bank transaction events, detect accounts with explainable evidence, and reconstruct the likely flow of funds backward and forward through account networks until an off-ramp, a terminal point, a configured investigation limit, or an explicitly uncertain boundary is reached.
+This document is the source of truth. Implement the requirements in order, keep the project runnable at every phase, and do not replace core functionality with static screenshots, hardcoded dashboard numbers, or buttons that do nothing.
+1. Product goal and non-goals
+Primary goal
+Detect and flag a suspected mule account using explicit, inspectable signals; never flag an account without a recorded reason.
+After a trigger, trace related transfers across banks and payment rails in the synthetic environment, including partial amounts, splits, merges, repeated hops, and long chains.
+Display a lineage evidence trail: accounts, banks, transactions, timestamps, amounts, detection reasons, confidence/uncertainty, and why the trace stopped.
+Support cases with no off-ramp. An off-ramp is one possible terminal event, not a prerequisite for detection or tracing.
+Demonstrate the system through an interactive transaction simulator and a visual investigation workspace.
+Non-goals / honesty boundaries
+Do not connect to real bank systems, real customer records, or live RBI systems. All records are synthetic and clearly labeled as such.
+Do not claim that e₹ programmability automatically enables universal tracing across banks. In this prototype, cross-bank visibility exists because the simulator provides a shared synthetic event/ledger feed.
+Do not label someone a criminal. Use “suspected mule”, “risk signal”, and “requires review”; detection is not proof of wrongdoing.
+Do not claim novelty or superior performance until measured against documented baseline rules on held-out test scenarios.
+Do not implement real token issuance, blockchain, CBDC wallet integration, or actual off-ramp access. Simulate those concepts as events.
+2. User journeys
+Demo mode: choose a scenario, start it, watch transfers occur, see alerts appear with reasons, and follow the investigation live.
+Manual transfer mode: choose source/destination accounts, enter an amount and optional memo, submit a simulated transfer, then observe the ledger and any detector response.
+Investigations mode: open an alert, inspect evidence, run backward/forward tracing, view the network graph and lineage timeline, and export a case report.
+Scenario lab: select normal or suspicious scenarios, change speed/thresholds, reset the simulation, and compare expected ground truth with system output.
+Evaluation mode: run the test suite and see precision, recall, false-positive rate, path/lineage recovery, runtime, and baseline comparison.
+3. Recommended architecture and stack
+Layer
+Choice
+Why / constraints
+Frontend
+React + Vite + TypeScript
+Fast local development; rich interactive graph and simulation UI.
+UI styling
+Tailwind CSS + shadcn/ui
+Consistent, polished dashboard components; accessible controls.
+Graph visualization
+Cytoscape.js (preferred)
+Good for medium/large directed graphs, layouts, highlighting paths and network clusters.
+Charts
+Recharts
+Risk trends, transaction volume, evaluation metrics.
+Backend API
+Python + FastAPI + Pydantic
+Clear API contracts, fast iteration, easy test integration.
+Database
+PostgreSQL
+Relational source of truth for accounts, transactions, alerts, investigations, and scenario metadata.
+ORM/migrations
+SQLAlchemy 2 + Alembic
+Typed persistence and reproducible schema migrations.
+Background processing
+In-process async task/worker for MVP
+Avoid unnecessary infrastructure. Keep event processing modular so a queue can be added later.
+Testing
+pytest + Hypothesis (optional) + frontend tests
+Unit, integration, property-based, and scenario-level tests.
+Local orchestration
+Docker Compose for PostgreSQL; local frontend/backend
+One-command repeatable setup. App should also document a no-Docker database alternative if practical.
+
+Do not add Redis, Kafka, a vector database, an LLM, or blockchain in the MVP. They do not solve the core lineage problem and would increase failure points. The detector must be deterministic and explainable.
+4. System overview
+Core flow:
+Scenario / Manual Transfer → Transaction API → Ledger + Event → Detection Engine → Alert / Trigger → Lineage Engine → Investigation Graph + Timeline → Case Report
+Separate these responsibilities in code:
+Ledger: records what the simulator says happened. Never rewrite posted transactions; use reversal/adjustment events.
+Detection: evaluates account/transaction/network signals and records reasons. It does not decide the lineage by itself.
+Lineage: reconstructs candidate paths from the ledger and reports evidence plus uncertainty. It does not declare guilt.
+Ground truth: scenario generator stores hidden labels used only for evaluation, not exposed as detector inputs.
+Presentation: reads API results; never computes authoritative risk or lineage solely in the browser.
+5. Domain concepts and data model
+Use UUID identifiers. Store money as integer minor units (paise) plus currency code, never floating-point values. Store timestamps in UTC and display local time in the UI.
+Entity
+Essential fields
+Purpose
+Bank
+id, name, bank_code
+Synthetic bank/financial institution.
+Account
+id, bank_id, account_ref, account_type, opened_at, status, risk_state
+Synthetic account or wallet; do not use real personal data.
+Transaction
+id, source_account_id, destination_account_id, amount_minor, currency, initiated_at, posted_at, status, rail, scenario_id, memo, reversal_of_id, idempotency_key
+Immutable transaction record and lifecycle.
+TransactionEvent
+id, transaction_id, event_type, event_time, payload_json
+Initiated, pending, posted, failed, reversed, off-ramp, etc.
+DetectionAlert
+id, account_id, trigger_transaction_id, risk_score, severity, status, created_at
+Account-level alert with review status.
+AlertEvidence
+id, alert_id, rule_code, observed_value, threshold, explanation, related_transaction_ids
+Auditable reasons behind an alert.
+Investigation
+id, alert_id, root_account_id, started_at, status, stop_reason, config_json
+Tracks a lineage exploration and its settings.
+LineageNode / Edge
+investigation_id, account_id / transaction_id, direction, hop_depth, amount_attributed_minor, evidence_type, uncertainty
+Persist or reproducibly derive the graph discovered in an investigation.
+Scenario
+id, name, description, scenario_type, parameters_json, seed, expected_labels_ref
+Reproducible test/demo setup.
+GroundTruthLabel
+scenario_id, account_id, label, role, source_funds_id
+Evaluation-only labels; never fed into detector.
+EvaluationRun
+id, scenario_id, detector_version, metrics_json, created_at
+Track results and compare algorithms.
+
+Important modeling rules
+Accounts belong to banks; transactions reference source and destination accounts. A cross-bank transfer is simply a transaction whose endpoints have different bank IDs.
+Keep transaction status and lifecycle events. Pending, failed, duplicated, reversed, and late-arriving events must not be treated as settled money movement.
+The prototype’s default model is a transfer ledger, not a claim that each fungible digital-currency unit can always be identified. Partial-transfer lineage is an attribution estimate unless the simulation explicitly provides token/lot-level provenance.
+For realistic splits/merges, optionally add TransferAllocation(source_transaction_id, downstream_transaction_id, allocated_amount_minor, method, confidence). Enforce that allocations never exceed the source or downstream amount.
+Use synthetic stable account references and generated names only. No real account numbers or personal identifiers.
+Enforce unique idempotency keys; use database constraints for positive amounts, valid currency, valid endpoints, and valid state transitions.
+6. Detection: what makes an account suspicious?
+No account is flagged merely because it is connected to another account or because it receives a large amount. Every alert must include one or more observable signals, a rule code, the evidence window, and a human-readable explanation.
+Signal family
+Example feature
+Important guardrail
+Pass-through behavior
+High inbound value followed by rapid outbound value; low retained balance in a time window
+Compare to account type and normal behavior; do not use one universal threshold.
+Fan-in / fan-out
+Many unrelated sources converge on one account, then funds disperse to many destinations
+Count unique counterparties and time windows; legitimate aggregators exist.
+Velocity / burst
+Transaction count or value spikes compared with the account’s recent baseline
+Synthetic prototype may use configurable limits; show the exact window.
+Repeated small retention
+Repeated transfers leave a similar small fraction behind while the rest moves onward
+Use as a supporting signal only; avoid treating a single percentage as proof.
+Network context
+Account is part of a multi-hop cluster with multiple independent risk signals
+Propagate risk carefully; a connection alone is not enough.
+Identity / lifecycle anomalies
+New account rapidly begins high-volume pass-through activity
+Synthetic metadata only; explain the feature and avoid protected-class proxies.
+Known scenario indicator
+Simulator marks an event as off-ramp or known mule role
+Allowed for demo labels only if clearly separated from operational detector inputs; do not leak ground truth into detection.
+
+Implement a deterministic rule-based baseline first. Use configurable, versioned rules and a risk score that is the sum of bounded, documented contributions. Set alert thresholds through configuration. Each alert should show the contributing rules and raw evidence. Do not use an LLM to decide whether an account is a mule.
+Baseline and proposed innovation
+Baseline: account-level threshold and velocity rules, pass-through ratio, fan-in/fan-out, and short time-window patterns.
+Candidate Mule Matrix contribution: trigger-based cross-bank lineage reconstruction with split/merge-aware amount attribution, evidence-linked graph exploration, and explicit uncertainty/stop reasons.
+Only call this a demonstrated improvement if evaluation shows a measurable gain on held-out scenarios versus baseline. State the exact metric and test set.
+Use a common interface for detector versions so baseline and candidate can be compared fairly.
+7. When does tracking start?
+Support three configurable trigger types:
+Account alert trigger: a detector creates an alert because one or more signals cross configured limits.
+Transaction trigger: a transaction itself matches a configured high-risk pattern, such as an unusual burst or rapid onward movement.
+Manual investigator trigger: the user selects an account or transaction and explicitly starts an investigation.
+An off-ramp is not required to start tracking. It is a possible terminal marker. The trace can also stop at no more connected events, an investigation horizon, a hop/size budget, missing data, or unresolved attribution.
+8. Lineage engine: backward + forward tracing
+Implement as a graph traversal over posted/settled transactions, with time and amount constraints. Keep a clear distinction between direct transaction connectivity and estimated same-funds attribution.
+Resolve the trigger to an account and/or transaction; record the trigger and the evidence that caused it.
+Build candidate incoming and outgoing edges from eligible posted transactions. Exclude failed/pending transactions by default; include reversals as explicit correction events.
+Backward pass: follow incoming transactions within a configurable look-back window to identify plausible upstream source accounts and earlier hops.
+Forward pass: follow outgoing transactions within a configurable look-ahead window to identify plausible downstream destinations, repeated hops, and off-ramp events.
+For each hop, record transaction ID, source/destination bank and account, amount, timestamp, status, and the rule/constraint that allowed the hop.
+Handle splits and merges: one incoming transfer may be followed by multiple outgoing transfers; multiple incoming transfers may feed one outgoing transfer. Use bounded allocation candidates and show uncertainty where exact attribution cannot be established.
+Deduplicate visits and detect cycles. A visited-state key should include account, direction, time boundary, and relevant amount/attribution state—not just account ID.
+Stop on configured limits and record a machine-readable stop reason. Never silently truncate the graph.
+Return nodes, edges, candidate paths, total traced hops, coverage, attribution confidence, and a plain-language explanation.
+Stop reasons to support
+OFF_RAMP_REACHED
+NO_ELIGIBLE_INCOMING_OR_OUTGOING_TRANSACTIONS
+LOOKBACK_OR_LOOKAHEAD_WINDOW_EXCEEDED
+MAX_HOPS_REACHED
+MAX_NODES_OR_EDGES_REACHED
+MISSING_OR_CONFLICTING_DATA
+AMBIGUOUS_AMOUNT_ATTRIBUTION
+INVESTIGATION_CANCELLED
+Performance expectations
+Use indexed queries on source_account_id, destination_account_id, posted_at, status, and scenario_id.
+Use bounded breadth-first traversal or a priority queue for ranked candidate paths; never recursively query the database once per edge.
+Add configurable limits for maximum nodes, edges, hops, and runtime. Return partial results with a clear stop reason.
+Target the demo scenario of 10,000 accounts and 100,000 transactions on a developer laptop; record actual runtime in evaluation rather than promising a specific SLA.
+Do not claim that graph connectivity proves that the exact same money travelled through every edge. Show “direct transfer path” versus “estimated funds lineage.”
+9. Off-ramp and terminal behavior
+Represent an off-ramp as a synthetic event type, for example conversion to external cash/merchant payout/external rail, with a linked account and transaction.
+Allow zero, one, or multiple off-ramps in a scenario.
+If no off-ramp exists, trace until the graph ends or a configured boundary is reached. Label the result “trace ended; no off-ramp observed,” not “money exited.”
+If a transfer leaves the simulated data boundary, show an external/unknown node and mark downstream lineage unavailable.
+A threshold such as ₹1,00,000 may trigger extra scrutiny in a scenario, but must be configurable and not the sole detection mechanism.
+10. Synthetic data and scenario factory
+Create a deterministic scenario generator with a seed and hidden ground truth. Include realistic normal behavior alongside suspicious patterns so the system cannot pass by flagging everyone.
+Scenario
+Expected behavior
+Simple mule chain
+Source → mule A → mule B → recipient/off-ramp; detect and reconstruct all available hops.
+Commission / retention
+₹100,000 enters; intermediate account retains a configured percentage and forwards the remainder; show that exact attribution depends on ledger/allocation evidence.
+Split flow
+One inbound transfer is divided across several downstream accounts.
+Merge flow
+Funds from several sources converge into one account and later disperse.
+Long chain
+Hundreds or thousands of hops within configured limits; bounded traversal, performance and stop reason are tested.
+Cross-bank chain
+Every hop can cross a different synthetic bank; bank changes must not break lineage.
+No off-ramp
+Suspicious activity exists but no off-ramp event occurs; still detect and trace to boundary.
+Multiple off-ramps
+A network branches into multiple terminal events.
+Fan-in / fan-out
+Many-to-one then one-to-many movement.
+Cycle / circular movement
+A path returns to a previously visited account; traversal terminates safely.
+Legitimate lookalikes
+Payroll, family transfers, merchant settlement, refunds, subscriptions, charity, business cash management.
+Low-and-slow
+Activity spread across a long window rather than a burst.
+Near-threshold
+Amounts just below, at, and above a configurable threshold.
+Pending / failed / reversed
+Only eligible posted movement contributes to settled lineage; reversals are represented correctly.
+Duplicate / idempotent request
+Retries do not double-count the transfer.
+Out-of-order events
+Late events trigger a reproducible recomputation or update of investigation results.
+Missing / conflicting data
+Show incomplete evidence and uncertainty instead of inventing a path.
+Disconnected components
+Tracing does not wander into unrelated graph regions.
+High-volume hub
+A legitimate high-degree merchant or aggregator should not automatically be flagged.
+Adversarial evasion
+Vary amounts, split transfers, add delays, use intermediaries, or cross banks; evaluate degradation without hardcoding the answer.
+
+The scenario generator must expose scenario metadata to the UI but never expose ground-truth labels to detector code. Evaluation code may compare output with labels after detection is complete.
+11. Frontend: screen-by-screen specification
+A. Overview dashboard
+Top cards: transactions processed, active alerts, open investigations, suspected accounts, off-ramps observed in current scenario.
+Live event feed showing transfer posted, rule signal raised, alert created, trace updated, off-ramp observed.
+Risk/activity charts and recent investigations; all values come from API responses, not hardcoded constants.
+Global “Synthetic Simulation” indicator always visible.
+B. Transfer Simulator (separate primary tab)
+Form: source account, destination account, amount in INR, rail, optional memo, and submit transfer.
+Account selectors show synthetic account ID, bank, account type, and current simulated balance when balance accounting is enabled.
+Controls: run/pause/reset scenario, simulation speed, select scenario, single-step event, generate next transfer.
+On submit, show transaction status, transaction ID, source/destination banks, and any resulting detector signals.
+Two-pane layout: left side transfer controls and event log; right side live mini-graph that animates the transfer and highlights newly created alerts.
+Never display “mule detected” unless the backend returns an alert with evidence.
+C. Network Explorer
+Interactive directed graph: account nodes, bank grouping/color, transaction edges, arrows, amount and timestamp labels on selection.
+Highlight suspected accounts, trigger transaction, backward path, forward path, splits, merges, off-ramp/unknown terminal nodes.
+Controls: zoom, fit graph, search account/transaction, filter by bank, time range, amount, risk state, transaction status, and direction.
+Clicking a node opens account details and alert evidence. Clicking an edge opens transaction details and lifecycle events.
+Graph must support large networks through progressive expansion, clustering, and “load next hops” rather than rendering thousands of labels at once.
+D. Alerts & Account Risk
+Table with account ID, bank, risk score/severity, alert time, contributing rules, evidence count, review state.
+Account detail: activity timeline, counterparties, inbound/outbound stats, detector evidence, related investigations.
+Review actions: mark reviewed, dismiss with reason, escalate to investigation. These actions update backend state.
+E. Investigation Workspace (primary showcase)
+Header: case ID, trigger account/transaction, alert reasons, status, and “Run lineage trace” action.
+Main view: large graph; side panel for selected account/transaction; bottom panel for chronological lineage timeline.
+Separate “Backward” and “Forward” highlights plus “Combined lineage” view.
+Summary metrics: accounts discovered, banks crossed, transactions traversed, hops, off-ramps found, trace coverage, unresolved branches.
+Show each hop as an evidence row: from → to, bank → bank, amount, timestamp, transaction ID, status, attribution method/confidence.
+Display stop reason and limitations clearly. Provide “Export case report” as JSON and human-readable HTML or PDF.
+F. Scenario Lab & Evaluation
+Scenario catalogue with expected purpose, network size, and Run button.
+Ground truth is hidden during normal interactive detection; evaluation report may compare after run.
+Compare baseline detector and Mule Matrix candidate on the same scenario seeds.
+Metrics: account-level precision/recall/F1, false-positive rate on legitimate accounts, alert rate, lineage edge/path recall, source/terminal recovery, attribution error where ground truth supports it, runtime, node/edge count.
+Show confusion matrix and per-scenario failures. Do not report accuracy alone because class imbalance can hide failures.
+G. Settings / Rules
+Editable detector thresholds, time windows, risk-score weights, lineage hop/node/time budgets, and simulation settings.
+Validate inputs; show which detector version/config was used for each alert and evaluation run.
+Provide reset-to-defaults and export/import configuration.
+Visual design direction
+Professional fraud-operations console, dark navy/charcoal base with restrained teal and amber accents; red reserved for high-severity alert indicators.
+Prioritize graph readability and evidence over decorative animations. Motion should communicate a transaction or new discovery, not distract.
+Responsive desktop-first layout; keyboard accessible controls, visible focus states, tooltips, loading/empty/error states.
+Never rely on color alone: use icons, labels, line styles, and text for risk and edge types.
+12. API contract (minimum)
+Method / route
+Purpose
+GET /api/health
+Health and version.
+GET /api/banks
+List synthetic banks.
+GET /api/accounts
+Search/filter accounts; pagination required.
+GET /api/accounts/{id}
+Account detail and activity summary.
+POST /api/transactions
+Validate and post a simulated transfer; support idempotency key.
+GET /api/transactions
+Search/filter transactions; pagination required.
+GET /api/transactions/{id}
+Transaction plus lifecycle events.
+GET /api/events/stream
+SSE stream for new simulation events, alerts, and trace updates.
+GET /api/alerts
+List alerts with filters and pagination.
+GET /api/alerts/{id}
+Alert evidence and related transactions.
+POST /api/investigations
+Create investigation from account, transaction, or alert.
+POST /api/investigations/{id}/trace
+Run/re-run bounded backward and forward trace.
+GET /api/investigations/{id}
+Investigation summary, graph nodes/edges, paths, stop reasons.
+GET /api/scenarios
+List scenario definitions, excluding detector-inaccessible ground truth.
+POST /api/scenarios/{id}/run
+Reset/seed/run scenario.
+POST /api/simulation/pause
+Pause simulation.
+POST /api/simulation/reset
+Reset selected simulation.
+POST /api/evaluations/run
+Run detector comparison and test scenarios.
+GET /api/evaluations/{id}
+Evaluation results and metrics.
+GET /api/investigations/{id}/export
+Export case report.
+
+Use Pydantic request/response models, consistent error shapes, pagination, validation, and OpenAPI docs. Keep API routes thin; business logic belongs in service modules.
+13. Suggested repository structure
+mule-matrix/   README.md   docker-compose.yml   .env.example   docs/     SYSTEM_SPEC.md     TEST_PLAN.md     API_CONTRACT.md   backend/     pyproject.toml     alembic.ini     app/       main.py       core/             # config, logging, errors       api/routes/       # accounts, transactions, alerts, investigations, scenarios, evaluations       db/               # session, base, migrations       models/           # SQLAlchemy entities       schemas/          # Pydantic DTOs       services/         ledger_service.py         event_service.py         detection_service.py         lineage_service.py         scenario_service.py         evaluation_service.py         export_service.py       detection/         rules.py         scoring.py         versions.py       lineage/         traversal.py         allocation.py         stop_reasons.py       simulation/         generator.py         scenarios.py         ground_truth.py  # evaluation-only boundary       tests/   frontend/     package.json     src/       app/       components/       pages/         Overview.tsx         TransferSimulator.tsx         NetworkExplorer.tsx         Alerts.tsx         InvestigationWorkspace.tsx         ScenarioLab.tsx         Settings.tsx       features/         accounts/         transactions/         investigations/         graph/         simulation/         evaluations/       lib/api.ts       types/ 
+14. Test strategy and acceptance criteria
+Correctness
+A normal transfer creates one immutable transaction and does not duplicate on retry.
+A suspicious scenario produces an alert only when its configured detector evidence supports one; every alert has at least one evidence record.
+A no-off-ramp scenario still produces an investigation when a trigger exists, and ends with a correct no-off-ramp stop explanation.
+Backward and forward traversal return the expected connected eligible transactions for deterministic chain, split, merge, and cross-bank fixtures.
+Cross-bank hops work without special-case assumptions about bank identity.
+Pending/failed transfers do not count as settled money movement; reversals adjust effective flow without deleting history.
+Cycles terminate; high-degree nodes and long chains respect configured limits and return explicit stop reasons.
+The lineage engine never attributes more value to a source lot than the amount available in the simulated allocation model.
+Unknown or missing data is reported as uncertainty, not filled with invented accounts or transactions.
+UI numbers and graphs match backend responses; all main buttons perform real actions and surface errors.
+Evaluation uses held-out scenario seeds; ground-truth labels are unavailable to detector execution.
+All tests pass from documented commands; setup works from a clean clone.
+Security and quality
+Validate all IDs, amounts, pagination, time windows, and configuration values.
+Use environment variables for secrets; do not commit credentials. MVP should need no third-party API key.
+Use structured logs and a request ID; never log real personal data because none should be present.
+Provide database migrations and deterministic seed scripts.
+Use frontend loading, empty, success, and error states; avoid swallowed exceptions.
+Add backend unit tests for every rule and lineage stop reason, API integration tests, and frontend tests for transfer submission, alert evidence, and investigation navigation.
+15. Build phases and required order
+Phase
+Deliverable
+Definition of done
+0. Foundation
+Repo, README, environment, Docker Compose, CI/test commands
+Fresh setup documented; health endpoint and frontend shell run.
+1. Ledger + schema
+Migrations, synthetic banks/accounts, transaction lifecycle
+Seed data loads; transfers validate and persist correctly.
+2. Scenario engine
+Seeded normal/suspicious scenario generator + evaluation-only ground truth
+Same seed reproduces same ledger and labels.
+3. Detection baseline
+Versioned explainable rules and evidence records
+Unit tests prove each rule; alerts explain exactly why they fired.
+4. Lineage engine
+Bounded backward/forward traversal, split/merge candidate allocation, stop reasons
+Fixtures for chains, branches, cycles, no off-ramp, and cross-bank pass.
+5. API integration
+All routes, pagination, SSE events, exports
+Frontend can operate the system without direct database access.
+6. Core frontend
+Overview, Transfer Simulator, Network Explorer, Alerts
+Manual transfer and scenario run update real backend state.
+7. Investigation UI
+Graph, evidence panel, lineage timeline, case export
+One click from alert to a fully explainable investigation.
+8. Evaluation + hardening
+Baseline comparison, metrics, hidden edge cases, performance report
+Test suite passes; results are reproducible and limitations documented.
+9. Demo polish
+Seeded demo walkthrough, reset button, screenshots optional
+A judge can run the entire story from a clean start without developer intervention.
+
+16. Demo walkthrough for judges
+Open the synthetic environment and choose “Cross-bank split-and-merge mule network.”
+Start the simulation; watch the initial transfer and subsequent account-to-account movements appear in the event feed.
+Show the alert: the account is flagged because of named signals and visible evidence, not because the scenario is secretly labeled as a mule.
+Open the investigation and run backward/forward tracing. Highlight the origin candidate, intermediary accounts, partial flows, cross-bank edges, and terminal/off-ramp if present.
+Switch to a scenario with no off-ramp and show that tracing still works and explains why it stopped.
+Run a legitimate lookalike scenario and show that the detector does not simply flag every high-volume account.
+Open Evaluation and compare baseline vs candidate metrics on held-out seeds, including false positives and lineage recovery.
+Export the case report containing the evidence, graph summary, trace stop reason, detector version, and limitations.
+17. Important edge cases that must not be ignored
+Case
+Required behavior
+Same account as source and destination
+Reject unless explicit supported event type; never create accidental self-loop transfers.
+Zero/negative/too-large amount
+Reject with validation error.
+Duplicate API request
+Idempotently return original transaction.
+Transaction timestamp out of order
+Store event time and ingestion time separately; recompute affected traces if configured.
+Transaction reversal
+Preserve original and reversal link; update effective flow consistently.
+Partial transfer / fees
+Model fee and remainder explicitly; do not assume full amount moves onward.
+Concurrent transfers
+Use database transactions/locking or consistent ledger rules to avoid overspending if balances are enforced.
+Bank identity missing
+Keep edge but mark institution unknown; don't infer it.
+Account closure
+Allow historical tracing; block new transfers if closed.
+Huge hub / graph explosion
+Apply node/edge/time budgets, summarize clusters, disclose truncation.
+Multiple candidate sources
+Return ranked candidate paths and uncertainty, not a single fabricated answer.
+No suspicious signal
+Do not automatically launch a mule investigation; allow manual exploratory tracing with a clear label.
+Detector config changes
+Version config and record which version generated each alert.
+Ground-truth leakage
+Detector modules must not import or query scenario ground-truth labels.
+
+18. Required output from Antigravity
+A complete working monorepo with backend, frontend, migrations, scenario generator, detector, lineage engine, and tests.
+A polished interactive frontend with all seven primary screens/tabs described above.
+A populated synthetic dataset with at least 8 banks, 10,000 accounts, and scenario generation capable of producing 100,000 transactions; scale can be generated on demand.
+At least 20 deterministic scenario fixtures plus randomized/property tests for edge conditions.
+A one-command development setup, seed/reset commands, and clear README instructions.
+A demo script and a sample exported investigation report.
+No fake metrics, nonfunctional controls, hardcoded detection outcomes, or ground-truth leakage.
+A concise architecture note explaining what is truly implemented, what is simulated, known limitations, and measured results.
+19. Implementation instructions to the coding agent
+Read this whole specification before editing files. Convert it into a checklist and keep it updated.
+Inspect the existing repository first; preserve useful work and report any conflicts with this spec.
+Implement incrementally in the stated phase order. Do not start by building only the dashboard.
+After each phase, run tests and fix failures before proceeding.
+Use strict TypeScript and typed API clients; avoid `any` except where justified.
+Use deterministic fixtures and seeded generators. Never hardcode the correct alert result inside the detector.
+Keep ground-truth labels isolated from production-like detection code and API responses.
+Ensure graph and timeline values come from backend API results.
+If a requirement is ambiguous, choose the simplest safe implementation, document the decision, and continue rather than inventing external integrations.
+At completion, provide setup commands, test results, screenshots only if actually generated, known limitations, and the exact demo sequence.
+20. Definition of done
+Mule Matrix MVP is done when a judge can clone/open the project, start the services, load a synthetic scenario, submit or replay transfers, see evidence-based account alerts, open an investigation, trace backward and forward across synthetic banks through splits/merges, handle a scenario with no off-ramp, inspect uncertainty and stop reasons, and compare the detector against a baseline on reproducible held-out tests. The UI must be connected to real backend behavior, the tests must pass, and the demo must clearly distinguish simulated capability from real-world bank access.
