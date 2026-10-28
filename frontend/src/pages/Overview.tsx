@@ -268,10 +268,10 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                 <p className="text-xs text-slate-500">Settled multi-bank transactions</p>
               </div>
               <button
-                onClick={() => onNavigateTab('network')}
+                onClick={() => onNavigateTab('simulator')}
                 className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
               >
-                <span>Network view</span>
+                <span>Simulate transfer</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             </div>

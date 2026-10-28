@@ -2,7 +2,6 @@ import React from 'react';
 import {
   LayoutDashboard,
   Send,
-  Network,
   BellRing,
   GitFork,
   FlaskConical,
@@ -17,7 +16,6 @@ import { useTheme } from '../context/ThemeContext';
 export type TabType = 
   | 'overview' 
   | 'simulator' 
-  | 'network' 
   | 'alerts' 
   | 'investigation' 
   | 'scenarios' 
@@ -43,7 +41,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const tabs = [
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'simulator', label: 'Transfer Simulator', icon: Send },
-    { id: 'network', label: 'Network Explorer', icon: Network },
     { id: 'alerts', label: 'Alerts & Risk', icon: BellRing, count: alertCount },
     { id: 'investigation', label: 'Investigation Workspace', icon: GitFork },
     { id: 'scenarios', label: 'Scenario Lab & Eval', icon: FlaskConical },

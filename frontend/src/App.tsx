@@ -4,7 +4,6 @@ import { GlobalNotice } from './components/GlobalNotice';
 import { Navbar, TabType } from './components/Navbar';
 import { Overview } from './pages/Overview';
 import { TransferSimulator } from './pages/TransferSimulator';
-import { NetworkExplorer } from './pages/NetworkExplorer';
 import { Alerts } from './pages/Alerts';
 import { InvestigationWorkspace } from './pages/InvestigationWorkspace';
 import { ScenarioLab } from './pages/ScenarioLab';
@@ -78,7 +77,6 @@ const AppContent: React.FC = () => {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'overview' && <Overview onNavigateTab={handleNavigateTab} />}
         {activeTab === 'simulator' && <TransferSimulator />}
-        {activeTab === 'network' && <NetworkExplorer />}
         {activeTab === 'alerts' && <Alerts onNavigateTab={handleNavigateTab} />}
         {activeTab === 'investigation' && <InvestigationWorkspace initialContext={navContext} />}
         {activeTab === 'scenarios' && <ScenarioLab />}
