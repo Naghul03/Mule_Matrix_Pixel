@@ -170,12 +170,13 @@ export const Alerts: React.FC<AlertsProps> = ({ onNavigateTab }) => {
                         {alert.risk_score}
                       </td>
                       <td className="py-3">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                          alert.severity === 'CRITICAL' ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400 border border-red-200 dark:border-red-900/60' :
-                          alert.severity === 'HIGH' ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-900/60' :
-                          'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60'
-                        }`}>
-                          {alert.severity}
+                        <span className="inline-flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 font-medium">
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            alert.severity === 'CRITICAL' ? 'bg-red-600' :
+                            alert.severity === 'HIGH' ? 'bg-amber-500' :
+                            'bg-blue-500'
+                          }`} />
+                          <span>{alert.severity}</span>
                         </span>
                       </td>
                       <td className="py-3">

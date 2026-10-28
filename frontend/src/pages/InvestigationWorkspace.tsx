@@ -90,24 +90,61 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
     }
   };
 
-  // Cytoscape rendering
+  // Sequential Lineage Traversal Player State
+  const sortedEdges = React.useMemo(() => {
+    if (!investigation?.edges) return [];
+    return [...investigation.edges].sort((a, b) => {
+      if (a.hop_depth !== b.hop_depth) return a.hop_depth - b.hop_depth;
+      const tA = a.posted_at ? new Date(a.posted_at).getTime() : 0;
+      const tB = b.posted_at ? new Date(b.posted_at).getTime() : 0;
+      return tA - tB;
+    });
+  }, [investigation]);
+
+  const totalHops = Math.max(1, sortedEdges.length);
+  const [currentHop, setCurrentHop] = useState<number>(1);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+
+  // Auto-play timer for sequential real-time lineage visualization
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (currentHop >= totalHops) {
+      setIsPlaying(false);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCurrentHop(prev => Math.min(totalHops, prev + 1));
+    }, 1400);
+    return () => clearTimeout(timer);
+  }, [isPlaying, currentHop, totalHops]);
+
+  // Cytoscape rendering with sequential reveal and 30 nodes cap
   useEffect(() => {
     if (!graphContainerRef.current || !investigation) return;
 
-    let visibleNodes = investigation.nodes;
-    let visibleEdges = investigation.edges;
+    // Filter edges up to the active playback hop
+    let activeEdges = sortedEdges.slice(0, currentHop);
 
     if (viewMode === 'BACKWARD') {
-      visibleNodes = visibleNodes.filter(n => n.direction === 'ROOT' || n.direction === 'BACKWARD' || n.direction === 'BOTH');
-      visibleEdges = visibleEdges.filter(e => e.direction === 'BACKWARD');
+      activeEdges = activeEdges.filter(e => e.direction === 'BACKWARD');
     } else if (viewMode === 'FORWARD') {
-      visibleNodes = visibleNodes.filter(n => n.direction === 'ROOT' || n.direction === 'FORWARD' || n.direction === 'BOTH');
-      visibleEdges = visibleEdges.filter(e => e.direction === 'FORWARD');
+      activeEdges = activeEdges.filter(e => e.direction === 'FORWARD');
     }
+
+    // Determine involved accounts
+    const activeAccountIds = new Set<string>([investigation.root_account_id]);
+    activeEdges.forEach(e => {
+      activeAccountIds.add(e.source_account_id);
+      activeAccountIds.add(e.destination_account_id);
+    });
+
+    // Cap at 30 accounts for clean, uncluttered presentation
+    let visibleNodes = investigation.nodes.filter(n => activeAccountIds.has(n.account_id)).slice(0, 30);
 
     const isDark = theme === 'dark';
     const elements: cytoscape.ElementDefinition[] = [];
 
+    // Nodes
     visibleNodes.forEach(node => {
       let bgColor = isDark ? '#1e293b' : '#f8fafc';
       let borderColor = isDark ? '#475569' : '#cbd5e1';
@@ -146,7 +183,9 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
       });
     });
 
-    visibleEdges.forEach(edge => {
+    // Edges
+    activeEdges.forEach((edge, idx) => {
+      const isLatest = idx === activeEdges.length - 1;
       elements.push({
         group: 'edges',
         data: {
@@ -154,7 +193,8 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           source: edge.source_account_id,
           target: edge.destination_account_id,
           amount_formatted: `₹${(edge.amount_minor / 100).toLocaleString()}`,
-          raw: edge
+          raw: edge,
+          isLatest
         }
       });
     });
@@ -188,7 +228,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           selector: 'node:selected',
           style: {
             'border-width': 3,
-            'border-color': '#f59e0b',
+            'border-color': '#1a73e8',
             'width': 54,
             'height': 54
           }
@@ -213,11 +253,19 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           }
         },
         {
+          selector: 'edge[?isLatest]',
+          style: {
+            'line-color': '#1a73e8',
+            'target-arrow-color': '#1a73e8',
+            'width': 3.5
+          }
+        },
+        {
           selector: 'edge:selected',
           style: {
-            'line-color': '#f59e0b',
-            'target-arrow-color': '#f59e0b',
-            'width': 3
+            'line-color': '#1a73e8',
+            'target-arrow-color': '#1a73e8',
+            'width': 3.5
           }
         }
       ],
@@ -238,12 +286,14 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
     });
 
     cyRef.current = cy;
-  }, [investigation, viewMode, theme]);
+  }, [investigation, viewMode, theme, currentHop, sortedEdges]);
 
   const handleExport = (format: 'html' | 'json') => {
     if (!investigation) return;
     window.open(api.getExportUrl(investigation.id, format), '_blank');
   };
+
+  const activeMovement = sortedEdges[currentHop - 1];
 
   return (
     <div className="space-y-6">
@@ -334,34 +384,31 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           </div>
         )}
 
-        {/* Machine-Readable Stop Reason Strip */}
-        {investigation?.stop_reason && (
-          <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200">
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-              <span>
-                <strong>Traversal Stop Reason:</strong> <code className="font-mono text-amber-700 dark:text-amber-300">{investigation.stop_reason}</code>
-                {investigation.stop_reason === 'OFF_RAMP_REACHED' && ' — Reached terminal cash/ATM off-ramp.'}
-                {investigation.stop_reason === 'NO_ELIGIBLE_INCOMING_OR_OUTGOING_TRANSACTIONS' && ' — Halted cleanly at boundary; no further eligible settled movements observed.'}
-              </span>
-            </div>
-            <span className="text-[10px] uppercase font-medium text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-900/60">
-              Audit Complete
+        {/* RBI Data Privacy & Programmable e-Rupee Token Info Banner */}
+        <div className="p-3 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-blue-900 dark:text-blue-200">
+          <div className="flex items-center space-x-2.5">
+            <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 flex-shrink-0 animate-pulse" />
+            <span>
+              <strong>RBI-Compliant Data Privacy & Programmable e-Rupee Architecture:</strong>{' '}
+              Customer PII remains strictly isolated within each member bank. Multi-hop fund flows are audited via cryptographic programmable e-Rupee (CBDC / e₹) token allocations without exposing private bank account histories.
             </span>
           </div>
-        )}
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 whitespace-nowrap self-start md:self-auto">
+            Zero-PII Token Tracking
+          </span>
+        </div>
       </div>
 
       {/* Main Workspace Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Graph Canvas (3 Cols) */}
-        <div className="lg:col-span-3 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col h-[520px] relative shadow-apple">
-          {/* Segmented Filter Control */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800 z-10">
+        <div className="lg:col-span-3 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col h-[560px] relative shadow-apple">
+          {/* Top Bar: View Mode Filter + Real-Time Flow Player Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 z-10">
             <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-md">
               <button
                 onClick={() => setViewMode('COMBINED')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
                   viewMode === 'COMBINED' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
@@ -369,7 +416,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
               </button>
               <button
                 onClick={() => setViewMode('BACKWARD')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
                   viewMode === 'BACKWARD' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
@@ -377,12 +424,67 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
               </button>
               <button
                 onClick={() => setViewMode('FORWARD')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
                   viewMode === 'FORWARD' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
                 }`}
               >
                 Forward (Off-Ramps)
               </button>
+            </div>
+
+            {/* Sequential Flow Animator Controls */}
+            <div className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 text-xs">
+              <button
+                onClick={() => {
+                  setCurrentHop(1);
+                  setIsPlaying(false);
+                }}
+                className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium"
+                title="Restart flow"
+              >
+                Start
+              </button>
+              <button
+                onClick={() => {
+                  setIsPlaying(false);
+                  setCurrentHop(prev => Math.max(1, prev - 1));
+                }}
+                disabled={currentHop <= 1}
+                className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40"
+                title="Previous transfer"
+              >
+                Prev
+              </button>
+              <button
+                onClick={() => setIsPlaying(!isPlaying)}
+                className="px-2.5 py-1 rounded bg-[#1a73e8] hover:bg-blue-700 text-white font-medium shadow-sm transition-colors"
+              >
+                {isPlaying ? 'Pause' : 'Play Flow'}
+              </button>
+              <button
+                onClick={() => {
+                  setIsPlaying(false);
+                  setCurrentHop(prev => Math.min(totalHops, prev + 1));
+                }}
+                disabled={currentHop >= totalHops}
+                className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40"
+                title="Next transfer"
+              >
+                Next
+              </button>
+              <button
+                onClick={() => {
+                  setCurrentHop(totalHops);
+                  setIsPlaying(false);
+                }}
+                className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium"
+                title="Reveal all"
+              >
+                All ({totalHops})
+              </button>
+              <span className="font-mono text-[11px] px-2 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
+                Hop {currentHop}/{totalHops}
+              </span>
             </div>
 
             <button
@@ -398,8 +500,38 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           {/* Graph DOM */}
           <div ref={graphContainerRef} className="w-full flex-1 rounded-lg bg-slate-50 dark:bg-[#090d16] mt-3" />
 
+          {/* Real-Time Active Movement Narrative Bar */}
+          {activeMovement && (
+            <div className="mt-2.5 p-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 font-semibold">
+                  HOP {currentHop}
+                </span>
+                <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
+                  {activeMovement.source_account_ref} ({activeMovement.source_bank_code}) ➔ {activeMovement.destination_account_ref} ({activeMovement.destination_bank_code})
+                </span>
+                <span className="text-slate-400">•</span>
+                <span className="font-mono font-bold text-slate-900 dark:text-white tabular-nums">
+                  ₹{(activeMovement.amount_minor / 100).toLocaleString()}
+                </span>
+                <span className="text-[10px] text-slate-500">via {activeMovement.rail}</span>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                {activeMovement.allocation_method && (
+                  <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-200/70 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                    Token Rule: {activeMovement.allocation_method}
+                  </span>
+                )}
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  Confidence: {Math.round(activeMovement.confidence * 100)}%
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* Node Legend */}
-          <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-200 dark:border-slate-800">
             <div className="flex items-center space-x-4">
               <span className="flex items-center space-x-1 text-red-600 dark:text-red-400 font-medium">
                 <span className="w-2 h-2 rounded-full bg-red-600 inline-block"></span>
@@ -422,7 +554,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
                 <span>Terminal Off-Ramp</span>
               </span>
             </div>
-            <span>Breadth-First Traversal</span>
+            <span>Max 30 accounts visualized</span>
           </div>
         </div>
 

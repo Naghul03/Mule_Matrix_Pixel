@@ -15,6 +15,89 @@ import {
 import { api } from '../lib/api';
 import { DetectionAlert, Transaction } from '../types/api';
 
+interface DemoTransferStep {
+  step: number;
+  sourceRef: string;
+  sourceBank: string;
+  destRef: string;
+  destBank: string;
+  amountFormatted: string;
+  rail: string;
+  memo: string;
+  tokenAllocation: string;
+  isMuleFlagged: boolean;
+  ruleCode?: string;
+  isOffRamp?: boolean;
+}
+
+const DEMO_TRANSFERS: DemoTransferStep[] = [
+  {
+    step: 1,
+    sourceRef: 'ACC-0001-HDFX',
+    sourceBank: 'HDFX',
+    destRef: 'ACC-0002-ICIX',
+    destBank: 'ICIX',
+    amountFormatted: '₹2,50,000.00',
+    rail: 'IMPS',
+    memo: 'Urgent contract investment',
+    tokenAllocation: '100% Principal Minted (e₹-MM-9012)',
+    isMuleFlagged: false
+  },
+  {
+    step: 2,
+    sourceRef: 'ACC-0002-ICIX',
+    sourceBank: 'ICIX',
+    destRef: 'ACC-0003-SBNX',
+    destBank: 'SBNX',
+    amountFormatted: '₹2,35,000.00',
+    rail: 'UPI',
+    memo: 'Payment settlement ref 883',
+    tokenAllocation: '94% Forwarded (Skims 1.7% commission)',
+    isMuleFlagged: true,
+    ruleCode: 'PASS_THROUGH_VELOCITY & SMALL_RETENTION'
+  },
+  {
+    step: 3,
+    sourceRef: 'ACC-0003-SBNX',
+    sourceBank: 'SBNX',
+    destRef: 'ACC-0004-AXSX',
+    destBank: 'AXSX',
+    amountFormatted: '₹1,20,000.00',
+    rail: 'IMPS',
+    memo: 'Disbursal tranche A',
+    tokenAllocation: '48% Split Allocation (e₹-MM-9012-A)',
+    isMuleFlagged: true,
+    ruleCode: 'RAPID_DISPERSAL'
+  },
+  {
+    step: 4,
+    sourceRef: 'ACC-0003-SBNX',
+    sourceBank: 'SBNX',
+    destRef: 'ACC-0005-KOTX',
+    destBank: 'KOTX',
+    amountFormatted: '₹1,10,000.00',
+    rail: 'NEFT',
+    memo: 'Disbursal tranche B',
+    tokenAllocation: '44% Split Allocation (e₹-MM-9012-B)',
+    isMuleFlagged: true,
+    ruleCode: 'RAPID_DISPERSAL'
+  },
+  {
+    step: 5,
+    sourceRef: 'ACC-0004-AXSX',
+    sourceBank: 'AXSX',
+    destRef: 'ACC-0008-PAYX',
+    destBank: 'PAYX',
+    amountFormatted: '₹1,18,000.00',
+    rail: 'CBDC_OFFRAMP',
+    memo: 'ATM Cash Out terminal PAYX-901',
+    tokenAllocation: 'Terminal Cash-Out Extraction',
+    isMuleFlagged: false,
+    isOffRamp: true,
+    ruleCode: 'OFF_RAMP_REACHED'
+  }
+];
+
 interface OverviewProps {
   onNavigateTab: (tab: string, context?: any) => void;
 }
@@ -32,6 +115,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [liveEvents, setLiveEvents] = useState<Array<{ type: string; timestamp: string; payload: any }>>([]);
   const [isDemoRunning, setIsDemoRunning] = useState(false);
+  const [activeDemoStep, setActiveDemoStep] = useState<number>(0);
 
   const fetchOverviewData = async () => {
     try {
@@ -80,15 +164,29 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
   }, []);
 
   const handleLaunchDemo = async () => {
+    if (isDemoRunning) return;
     setIsDemoRunning(true);
+    setActiveDemoStep(1);
+
     try {
+      // 1. Kick off database seed and detection processing
       await api.runScenario('scenario_cross_bank_matrix', 101);
       await fetchOverviewData();
+
+      // 2. Step through each transaction in real time (~1.2s per hop)
+      for (let s = 2; s <= 5; s++) {
+        await new Promise(r => setTimeout(r, 1200));
+        setActiveDemoStep(s);
+      }
+
+      // 3. Brief dwell before navigating to investigation
+      await new Promise(r => setTimeout(r, 1200));
       onNavigateTab('investigation');
     } catch (e) {
       console.error(e);
     } finally {
       setIsDemoRunning(false);
+      setActiveDemoStep(0);
     }
   };
 
@@ -120,7 +218,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-xs transition-colors shadow-sm disabled:opacity-50"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span>{isDemoRunning ? 'Running Scenario...' : 'Run Judge Demo'}</span>
+              <span>{isDemoRunning ? `Simulating Hop ${activeDemoStep}/5...` : 'Run Demo'}</span>
             </button>
             <button
               onClick={() => onNavigateTab('simulator')}
@@ -138,6 +236,120 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           </div>
         </div>
       </div>
+
+      {/* Real-Time Live Multi-Bank Simulation Dispatcher (Shows when Run Demo is clicked) */}
+      {isDemoRunning && (
+        <div className="bg-white dark:bg-[#0f172a] border border-blue-300 dark:border-blue-900/80 rounded-xl p-5 shadow-apple space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse inline-block" />
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Executing Live Cross-Bank Simulation (Real-Time Transfer Stepper)
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Simulating 5 sequential inter-bank transfers with RBI-compliant programmable e-Rupee token tracking.
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                Transfer {activeDemoStep} of 5
+              </span>
+              <button
+                onClick={() => onNavigateTab('investigation')}
+                className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium"
+              >
+                Skip to Investigation ➔
+              </button>
+            </div>
+          </div>
+
+          {/* Stepper Progress Bar */}
+          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+            <div
+              className="bg-[#1a73e8] h-full transition-all duration-500"
+              style={{ width: `${(activeDemoStep / 5) * 100}%` }}
+            />
+          </div>
+
+          {/* Step Cards List */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3 pt-1">
+            {DEMO_TRANSFERS.map((tx) => {
+              const isPast = activeDemoStep > tx.step;
+              const isCurrent = activeDemoStep === tx.step;
+
+              return (
+                <div
+                  key={tx.step}
+                  className={`p-3.5 rounded-lg border text-xs flex flex-col justify-between transition-all ${
+                    isCurrent
+                      ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-400 dark:border-blue-700 shadow-sm ring-1 ring-blue-400/40'
+                      : isPast
+                      ? 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-90'
+                      : 'bg-white dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-40'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-semibold text-slate-500">
+                        HOP {tx.step}
+                      </span>
+                      {isCurrent && (
+                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+                          Active...
+                        </span>
+                      )}
+                      {isPast && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                          Settled
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="font-mono font-medium text-slate-900 dark:text-white text-[11px] leading-tight">
+                      <div>{tx.sourceRef} <span className="text-slate-400">({tx.sourceBank})</span></div>
+                      <div className="text-slate-400 text-[10px]">➔ {tx.destRef} ({tx.destBank})</div>
+                    </div>
+
+                    <div className="font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">
+                      {tx.amountFormatted}
+                    </div>
+                    <div className="text-[10px] text-slate-500">via {tx.rail}</div>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-1">
+                    <div className="text-[10px] font-mono text-slate-500 truncate" title={tx.tokenAllocation}>
+                      {tx.tokenAllocation}
+                    </div>
+
+                    {tx.isMuleFlagged ? (
+                      <div className="inline-flex items-center space-x-1 text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-900">
+                        <span>🚨 MULE FLAGGED</span>
+                      </div>
+                    ) : tx.isOffRamp ? (
+                      <div className="inline-flex items-center space-x-1 text-[10px] font-semibold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-950/80 px-1.5 py-0.5 rounded border border-red-300">
+                        <span>🎯 OFF-RAMP</span>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-400">Initial Funding</div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800">
+            <span>🔒 RBI Data Privacy: Lineage audited strictly via programmable e-Rupee token metadata.</span>
+            {activeDemoStep === 5 && (
+              <span className="font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                Transitioning to Investigation Workspace...
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Metric Cards Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">

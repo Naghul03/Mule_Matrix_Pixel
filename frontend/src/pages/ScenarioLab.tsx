@@ -9,7 +9,6 @@ import {
   ShieldAlert,
   ArrowRight,
   Layers,
-  Sparkles,
   Info
 } from 'lucide-react';
 import { api } from '../lib/api';
@@ -85,7 +84,7 @@ export const ScenarioLab: React.FC = () => {
           disabled={isEvaluating}
           className="inline-flex items-center space-x-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-medium px-4 py-2 rounded-lg text-xs shadow-sm transition-colors disabled:opacity-50"
         >
-          <Sparkles className="w-3.5 h-3.5" />
+          <BarChart3 className="w-3.5 h-3.5" />
           <span>{isEvaluating ? 'Evaluating Benchmark Seeds...' : 'Run Comparative Benchmark'}</span>
         </button>
       </div>
