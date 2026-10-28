@@ -76,7 +76,7 @@ const AppContent: React.FC = () => {
       {/* Main Page Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {activeTab === 'overview' && <Overview onNavigateTab={handleNavigateTab} />}
-        {activeTab === 'simulator' && <TransferSimulator />}
+        {activeTab === 'simulator' && <TransferSimulator onNavigateTab={handleNavigateTab} />}
         {activeTab === 'alerts' && <Alerts onNavigateTab={handleNavigateTab} />}
         {activeTab === 'investigation' && <InvestigationWorkspace initialContext={navContext} />}
         {activeTab === 'scenarios' && <ScenarioLab />}

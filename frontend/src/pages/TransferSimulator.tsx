@@ -1,42 +1,66 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Send,
   Play,
   RotateCcw,
   CheckCircle2,
   AlertCircle,
-  Building,
-  Wallet,
-  Zap,
-  Layers
+  Building2,
+  ArrowRight,
+  Shield,
+  Layers,
+  ArrowRightLeft,
+  ChevronRight,
+  Info,
+  Clock,
+  Sparkles
 } from 'lucide-react';
-import cytoscape from 'cytoscape';
 import { api } from '../lib/api';
-import { Account, Bank, Transaction, ScenarioMeta } from '../types/api';
-import { useTheme } from '../context/ThemeContext';
+import { Account, Transaction, ScenarioMeta, DetectionAlert } from '../types/api';
 
-export const TransferSimulator: React.FC = () => {
-  const { theme } = useTheme();
+interface TransferSimulatorProps {
+  onNavigateTab?: (tab: string, context?: any) => void;
+}
+
+interface LiveSimulationStep {
+  step: number;
+  sourceRef: string;
+  sourceBank: string;
+  destRef: string;
+  destBank: string;
+  amountFormatted: string;
+  rail: string;
+  memo: string;
+  tokenAllocation: string;
+  isMuleFlagged: boolean;
+  ruleCode?: string;
+  isOffRamp?: boolean;
+}
+
+export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigateTab }) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [scenarios, setScenarios] = useState<ScenarioMeta[]>([]);
   const [selectedScenario, setSelectedScenario] = useState<string>('scenario_cross_bank_matrix');
 
-  // Form State
+  // Manual Transfer Form State
   const [sourceId, setSourceId] = useState<string>('');
   const [destinationId, setDestinationId] = useState<string>('');
   const [amountInr, setAmountInr] = useState<number>(250000);
   const [rail, setRail] = useState<string>('IMPS');
   const [memo, setMemo] = useState<string>('Consulting contract retainer');
-  
-  // Feedback
   const [submitting, setSubmitting] = useState(false);
-  const [lastTxResult, setLastTxResult] = useState<Transaction | null>(null);
-  const [recentSignals, setRecentSignals] = useState<string[]>([]);
-  const [eventLogs, setEventLogs] = useState<string[]>([]);
-  const [isScenarioRunning, setIsScenarioRunning] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
 
-  const miniGraphRef = useRef<HTMLDivElement>(null);
-  const cyRef = useRef<cytoscape.Core | null>(null);
+  // Real-Time Stepper State
+  const [isScenarioRunning, setIsScenarioRunning] = useState(false);
+  const [liveSteps, setLiveSteps] = useState<LiveSimulationStep[]>([]);
+  const [activeStep, setActiveStep] = useState<number>(0);
+  const [scenarioRunSummary, setScenarioRunSummary] = useState<{
+    scenarioName: string;
+    totalTxs: number;
+    totalAlerts: number;
+    rootAccountId?: string;
+  } | null>(null);
 
   const loadInitialData = async () => {
     try {
@@ -60,130 +84,15 @@ export const TransferSimulator: React.FC = () => {
     loadInitialData();
   }, []);
 
-  // Initialize Cytoscape mini-graph
-  useEffect(() => {
-    if (!miniGraphRef.current) return;
-
-    const isDark = theme === 'dark';
-    const cy = cytoscape({
-      container: miniGraphRef.current,
-      style: [
-        {
-          selector: 'node',
-          style: {
-            'background-color': isDark ? '#1e293b' : '#f8fafc',
-            'border-width': 1.5,
-            'border-color': isDark ? '#3b82f6' : '#2563eb',
-            'label': 'data(label)',
-            'color': isDark ? '#f8fafc' : '#0f172a',
-            'font-size': '10px',
-            'font-family': 'Inter, sans-serif',
-            'text-valign': 'bottom',
-            'text-margin-y': 4,
-            'width': 26,
-            'height': 26
-          }
-        },
-        {
-          selector: 'node.suspected',
-          style: {
-            'background-color': '#e11d48',
-            'border-color': '#f43f5e',
-            'color': '#e11d48',
-            'width': 30,
-            'height': 30
-          }
-        },
-        {
-          selector: 'edge',
-          style: {
-            'width': 1.5,
-            'line-color': isDark ? '#475569' : '#94a3b8',
-            'target-arrow-color': isDark ? '#475569' : '#94a3b8',
-            'target-arrow-shape': 'triangle',
-            'curve-style': 'bezier',
-            'label': 'data(label)',
-            'font-size': '9px',
-            'color': isDark ? '#94a3b8' : '#64748b',
-            'text-background-opacity': 0.8,
-            'text-background-color': isDark ? '#0f172a' : '#ffffff',
-            'text-background-padding': '2px',
-            'text-background-shape': 'roundrectangle'
-          }
-        },
-        {
-          selector: 'edge.active-tx',
-          style: {
-            'width': 2,
-            'line-color': '#2563eb',
-            'target-arrow-color': '#2563eb'
-          }
-        }
-      ],
-      layout: {
-        name: 'concentric',
-        concentric: () => 1,
-        levelWidth: () => 1,
-        padding: 24
-      }
-    });
-
-    cyRef.current = cy;
-    return () => {
-      cy.destroy();
-    };
-  }, [theme]);
-
-  const updateMiniGraph = (srcId: string, dstId: string, amt: number, wasFlagged: boolean) => {
-    if (!cyRef.current) return;
-    const cy = cyRef.current;
-
-    const srcAcc = accounts.find(a => a.id === srcId);
-    const dstAcc = accounts.find(a => a.id === dstId);
-    if (!srcAcc || !dstAcc) return;
-
-    if (!cy.getElementById(srcId).length) {
-      cy.add({
-        group: 'nodes',
-        data: { id: srcId, label: `${srcAcc.account_ref} (${srcAcc.bank_code})` }
-      });
-    }
-    if (!cy.getElementById(dstId).length) {
-      cy.add({
-        group: 'nodes',
-        data: { id: dstId, label: `${dstAcc.account_ref} (${dstAcc.bank_code})` }
-      });
-    }
-
-    const edgeId = `edge-${Date.now()}`;
-    cy.add({
-      group: 'edges',
-      data: {
-        id: edgeId,
-        source: srcId,
-        target: dstId,
-        label: `₹${(amt / 100).toLocaleString()}`
-      },
-      classes: 'active-tx'
-    });
-
-    if (wasFlagged) {
-      cy.getElementById(dstId).addClass('suspected');
-    }
-
-    cy.layout({ name: 'concentric', padding: 24 }).run();
-  };
-
   const handlePostTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sourceId || !destinationId) return;
 
     setSubmitting(true);
-    setRecentSignals([]);
     try {
       const amountMinor = Math.round(amountInr * 100);
       const idempotencyKey = `manual-${Date.now()}`;
-      
+
       const res = await api.postTransaction({
         source_account_id: sourceId,
         destination_account_id: destinationId,
@@ -193,50 +102,120 @@ export const TransferSimulator: React.FC = () => {
         idempotency_key: idempotencyKey
       });
 
-      setLastTxResult(res);
-
-      const alerts = await api.getAlerts({ limit: 5 });
+      const alerts = await api.getAlerts({ limit: 10 });
       const matchingAlert = alerts.find(a => a.account_id === destinationId || a.account_id === sourceId);
-      const wasFlagged = !!matchingAlert;
 
-      if (matchingAlert) {
-        setRecentSignals(matchingAlert.rules_triggered);
-        setEventLogs(prev => [
-          `[ALERT] Account ${matchingAlert.account_ref} triggered signals (${matchingAlert.rules_triggered.join(', ')}) with risk score ${matchingAlert.risk_score}`,
-          `[POSTED] ${res.id.slice(0, 8)}: ₹${amountInr.toLocaleString()} via ${rail} (${res.source_bank_code} → ${res.destination_bank_code})`,
-          ...prev
-        ]);
-      } else {
-        setEventLogs(prev => [
-          `[POSTED] ${res.id.slice(0, 8)}: ₹${amountInr.toLocaleString()} via ${rail} (${res.source_bank_code} → ${res.destination_bank_code}) - Normal settled flow`,
-          ...prev
-        ]);
-      }
+      const manualStep: LiveSimulationStep = {
+        step: 1,
+        sourceRef: res.source_account_ref,
+        sourceBank: res.source_bank_code,
+        destRef: res.destination_account_ref,
+        destBank: res.destination_bank_code,
+        amountFormatted: `₹${(res.amount_minor / 100).toLocaleString()}`,
+        rail: res.rail,
+        memo: res.memo || 'Direct settlement',
+        tokenAllocation: `e₹ Token #MM-${res.id.slice(0, 6)} (Manual Transfer)`,
+        isMuleFlagged: !!matchingAlert,
+        ruleCode: matchingAlert?.rules_triggered.join(' & ')
+      };
 
-      updateMiniGraph(sourceId, destinationId, amountMinor, wasFlagged);
+      setLiveSteps([manualStep]);
+      setActiveStep(1);
+      setScenarioRunSummary({
+        scenarioName: 'Manual Settlement Transfer',
+        totalTxs: 1,
+        totalAlerts: matchingAlert ? 1 : 0,
+        rootAccountId: matchingAlert ? matchingAlert.account_id : undefined
+      });
 
       const updatedAccs = await api.getAccounts({ limit: 100 });
       setAccounts(updatedAccs);
     } catch (err: any) {
-      setEventLogs(prev => [`[ERROR] ${err.message}`, ...prev]);
+      alert(`Transfer failed: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleRunScenario = async () => {
-    if (!selectedScenario) return;
+  const handleRunScenario = async (scenarioIdToRun?: string) => {
+    const scId = scenarioIdToRun || selectedScenario;
+    if (!scId || isScenarioRunning) return;
+
     setIsScenarioRunning(true);
+    setScenarioRunSummary(null);
+    setLiveSteps([]);
+    setActiveStep(0);
+
     try {
-      const result = await api.runScenario(selectedScenario);
-      setEventLogs(prev => [
-        `[SCENARIO COMPLETE] ${selectedScenario}: ${result.transactions_count} transactions posted, ${result.alerts_generated} explainable alerts generated.`,
-        ...prev
+      // 1. Trigger backend scenario execution & ground-truth attribution
+      const result = await api.runScenario(scId);
+
+      // 2. Fetch all transactions and alerts for this scenario
+      const [allTxs, alerts] = await Promise.all([
+        api.getTransactions({ scenario_id: scId, limit: 30 }),
+        api.getAlerts({ limit: 50 })
       ]);
+
+      // 3. Sort chronologically from first hop to last hop
+      const sortedTxs = [...allTxs].sort((a, b) => {
+        const timeA = new Date(a.posted_at || a.initiated_at).getTime();
+        const timeB = new Date(b.posted_at || b.initiated_at).getTime();
+        return timeA - timeB;
+      });
+
+      const scMeta = scenarios.find(s => s.id === scId);
+
+      // 4. Map transactions into rich real-time steps with e-Rupee token tracking
+      const steps: LiveSimulationStep[] = sortedTxs.map((tx, idx) => {
+        const matchingAlert = alerts.find(
+          a => a.account_id === tx.destination_account_id || a.account_id === tx.source_account_id
+        );
+        const isOffRamp =
+          tx.rail === 'CBDC_OFFRAMP' ||
+          (tx.memo && (tx.memo.toLowerCase().includes('off-ramp') || tx.memo.toLowerCase().includes('cash out') || tx.memo.toLowerCase().includes('atm withdrawal')));
+
+        return {
+          step: idx + 1,
+          sourceRef: tx.source_account_ref,
+          sourceBank: tx.source_bank_code,
+          destRef: tx.destination_account_ref,
+          destBank: tx.destination_bank_code,
+          amountFormatted: `₹${(tx.amount_minor / 100).toLocaleString()}`,
+          rail: tx.rail,
+          memo: tx.memo || 'Cross-bank movement',
+          tokenAllocation: `e₹ Token #MM-${tx.id.slice(0, 6)} (${
+            matchingAlert ? 'Transit Pass-Through' : isOffRamp ? 'Terminal Cash-Out' : idx === 0 ? 'Disbursal Funding' : 'Layering Allocation'
+          })`,
+          isMuleFlagged: !!matchingAlert,
+          ruleCode: matchingAlert?.rules_triggered.join(' & '),
+          isOffRamp: !!isOffRamp
+        };
+      });
+
+      setLiveSteps(steps);
+
+      if (steps.length > 0) {
+        // Step 1 active immediately
+        setActiveStep(1);
+
+        // Subsequent steps with realistic ~1.2s delay per transfer
+        for (let s = 2; s <= steps.length; s++) {
+          await new Promise(r => setTimeout(r, 1200));
+          setActiveStep(s);
+        }
+      }
+
+      setScenarioRunSummary({
+        scenarioName: scMeta?.name || scId,
+        totalTxs: steps.length,
+        totalAlerts: result.alerts_generated,
+        rootAccountId: result.root_account_id
+      });
+
       const updatedAccs = await api.getAccounts({ limit: 100 });
       setAccounts(updatedAccs);
     } catch (e: any) {
-      setEventLogs(prev => [`[SCENARIO ERROR] ${e.message}`, ...prev]);
+      alert(`Error running scenario: ${e.message}`);
     } finally {
       setIsScenarioRunning(false);
     }
@@ -244,53 +223,138 @@ export const TransferSimulator: React.FC = () => {
 
   const selectedSrcAcc = accounts.find(a => a.id === sourceId);
   const selectedDstAcc = accounts.find(a => a.id === destinationId);
+  const activeScenarioMeta = scenarios.find(s => s.id === selectedScenario);
+
+  const topScenarios = [
+    { id: 'scenario_cross_bank_matrix', label: 'Cross-Bank Matrix (5 Hops)' },
+    { id: 'scenario_simple_mule_chain', label: 'Simple 3-Hop Mule Chain' },
+    { id: 'scenario_commission_retention', label: 'Commission Retention' },
+    { id: 'scenario_split_flow', label: 'Rapid Split Flow' },
+    { id: 'scenario_merge_flow', label: 'Funnel Merge Aggregation' },
+    { id: 'scenario_fan_in_fan_out', label: 'Fan-In / Fan-Out' },
+    { id: 'scenario_circular_cycle', label: 'Circular Loop' },
+    { id: 'scenario_legit_payroll', label: 'Corporate Payroll (Clean)' }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Page Title & Replay Scenario Controls */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white flex items-center space-x-2">
-            <span>Transfer Simulator</span>
+          <div className="flex items-center space-x-2">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900">
+              Transaction Engine
+            </span>
+            <span className="text-xs text-slate-400">• Multi-Institution Simulation</span>
+          </div>
+          <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white mt-1">
+            Transfer Simulator & Scenario Engine
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Submit manual transactions or replay deterministic test scenarios across synthetic banking rails.
+            Step through 20 deterministic scenario typologies with real-time transfer pacing and programmable e-Rupee token tracking.
           </p>
         </div>
 
-        {/* Replay Controls */}
-        <div className="flex items-center space-x-2 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 p-1.5 rounded-lg shadow-sm">
-          <select
-            value={selectedScenario}
-            onChange={(e) => setSelectedScenario(e.target.value)}
-            className="bg-transparent text-xs text-slate-800 dark:text-slate-200 border-0 focus:outline-none pr-3 py-1 font-medium"
-          >
-            {scenarios.map(s => (
-              <option key={s.id} value={s.id} className="bg-white dark:bg-slate-900">{s.name}</option>
-            ))}
-          </select>
-
+        <div className="flex items-center space-x-2">
           <button
-            onClick={handleRunScenario}
-            disabled={isScenarioRunning}
-            className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-1.5 rounded-md text-xs transition-colors shadow-sm disabled:opacity-50"
+            onClick={() => setShowManualForm(!showManualForm)}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
-            <Play className="w-3 h-3 fill-current" />
-            <span>{isScenarioRunning ? 'Running...' : 'Run Scenario'}</span>
+            <ArrowRightLeft className="w-3.5 h-3.5 text-slate-500" />
+            <span>{showManualForm ? 'Hide Manual Transfer' : 'Manual Transfer Form'}</span>
           </button>
         </div>
       </div>
 
-      {/* Two-Pane Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Pane: Transfer Form & Log (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-              Submit Simulated Transfer
-            </h3>
+      {/* Scenario Launcher Card */}
+      <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              Select Scenario Typology (20 Deterministic Catalogues)
+            </span>
+            <div className="flex items-center space-x-2">
+              <select
+                value={selectedScenario}
+                onChange={(e) => setSelectedScenario(e.target.value)}
+                disabled={isScenarioRunning}
+                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-md"
+              >
+                {scenarios.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.scenario_type})
+                  </option>
+                ))}
+              </select>
 
-            <form onSubmit={handlePostTransfer} className="space-y-4">
+              <button
+                onClick={() => handleRunScenario()}
+                disabled={isScenarioRunning}
+                className="inline-flex items-center space-x-2 bg-[#1a73e8] hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg text-xs transition-colors shadow-sm disabled:opacity-50 flex-shrink-0"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                <span>
+                  {isScenarioRunning
+                    ? `Simulating Hop ${activeStep}/${liveSteps.length || '...'}`
+                    : 'Run Scenario'}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {activeScenarioMeta && (
+            <div className="lg:max-w-md bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs text-slate-600 dark:text-slate-400">
+              <div className="font-medium text-slate-900 dark:text-white mb-0.5">
+                {activeScenarioMeta.name}
+              </div>
+              <div className="text-[11px] leading-relaxed line-clamp-2">
+                {activeScenarioMeta.description}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Quick Scenario Buttons */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          <div className="flex items-center space-x-2 mb-2">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+              Quick Scenarios:
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {topScenarios.map(sc => (
+              <button
+                key={sc.id}
+                onClick={() => {
+                  setSelectedScenario(sc.id);
+                  handleRunScenario(sc.id);
+                }}
+                disabled={isScenarioRunning}
+                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                  selectedScenario === sc.id
+                    ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300'
+                    : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                } disabled:opacity-50`}
+              >
+                {sc.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Manual Transfer Form (Expandable) */}
+      {showManualForm && (
+        <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+              Submit Manual Settlement Transfer
+            </h3>
+            <span className="text-[10px] text-slate-400 font-mono">Isolated Synthetic Ledger</span>
+          </div>
+
+          <form onSubmit={handlePostTransfer} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Source Account */}
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -299,19 +363,19 @@ export const TransferSimulator: React.FC = () => {
                 <select
                   value={sourceId}
                   onChange={(e) => setSourceId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
                 >
                   {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>
-                      {acc.account_ref} • {acc.bank_code} ({acc.account_type}) - Balance: ₹{(acc.balance_minor / 100).toLocaleString()}
+                      {acc.account_ref} • {acc.bank_code} ({acc.account_type}) - ₹{(acc.balance_minor / 100).toLocaleString()}
                     </option>
                   ))}
                 </select>
                 {selectedSrcAcc && (
-                  <div className="mt-1 flex items-center space-x-3 text-[11px] text-slate-500">
-                    <span>Institution: {selectedSrcAcc.bank_name || selectedSrcAcc.bank_code}</span>
+                  <div className="mt-1 flex items-center space-x-2 text-[11px] text-slate-500">
+                    <span>{selectedSrcAcc.bank_name || selectedSrcAcc.bank_code}</span>
                     <span>•</span>
-                    <span>Available: ₹{(selectedSrcAcc.balance_minor / 100).toLocaleString()}</span>
+                    <span className="font-mono">Balance: ₹{(selectedSrcAcc.balance_minor / 100).toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -324,63 +388,58 @@ export const TransferSimulator: React.FC = () => {
                 <select
                   value={destinationId}
                   onChange={(e) => setDestinationId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
                 >
                   {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>
-                      {acc.account_ref} • {acc.bank_code} ({acc.account_type}) - Balance: ₹{(acc.balance_minor / 100).toLocaleString()}
+                      {acc.account_ref} • {acc.bank_code} ({acc.account_type}) - ₹{(acc.balance_minor / 100).toLocaleString()}
                     </option>
                   ))}
                 </select>
                 {selectedDstAcc && (
-                  <div className="mt-1 flex items-center space-x-3 text-[11px] text-slate-500">
-                    <span>Institution: {selectedDstAcc.bank_name || selectedDstAcc.bank_code}</span>
+                  <div className="mt-1 flex items-center space-x-2 text-[11px] text-slate-500">
+                    <span>{selectedDstAcc.bank_name || selectedDstAcc.bank_code}</span>
                     <span>•</span>
-                    <span>Available: ₹{(selectedDstAcc.balance_minor / 100).toLocaleString()}</span>
+                    <span className="font-mono">Balance: ₹{(selectedDstAcc.balance_minor / 100).toLocaleString()}</span>
                     {selectedSrcAcc && selectedSrcAcc.bank_id !== selectedDstAcc.bank_id && (
                       <span className="text-blue-600 dark:text-blue-400 font-medium">• Cross-Bank Transfer</span>
                     )}
                   </div>
                 )}
               </div>
+            </div>
 
-              {/* Amount & Rail */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Amount (INR)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={amountInr}
-                    onChange={(e) => setAmountInr(Number(e.target.value))}
-                    className="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono font-medium"
-                  />
-                  <div className="text-[10px] text-slate-400 mt-1">
-                    Minor integer units: {amountInr * 100} paise
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Payment Rail
-                  </label>
-                  <select
-                    value={rail}
-                    onChange={(e) => setRail(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="IMPS">IMPS (Immediate Payment Service)</option>
-                    <option value="UPI">UPI (Unified Payments Interface)</option>
-                    <option value="NEFT">NEFT (National Electronic Fund)</option>
-                    <option value="RTGS">RTGS (Real Time Gross Settlement)</option>
-                    <option value="CBDC_SIM">e₹ Synthetic CBDC</option>
-                  </select>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Amount (INR)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={amountInr}
+                  onChange={(e) => setAmountInr(Number(e.target.value))}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                />
               </div>
 
-              {/* Memo */}
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Payment Rail
+                </label>
+                <select
+                  value={rail}
+                  onChange={(e) => setRail(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="IMPS">IMPS</option>
+                  <option value="UPI">UPI</option>
+                  <option value="NEFT">NEFT</option>
+                  <option value="RTGS">RTGS</option>
+                  <option value="CBDC_SIM">e₹ CBDC</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   Memo
@@ -389,93 +448,199 @@ export const TransferSimulator: React.FC = () => {
                   type="text"
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
+            </div>
 
-              {/* Submit CTA */}
+            <div className="flex items-center justify-end">
               <button
                 type="submit"
                 disabled={submitting || sourceId === destinationId}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md text-xs shadow-sm transition-colors flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                className="bg-[#1a73e8] hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md text-xs shadow-sm transition-colors flex items-center space-x-1.5 disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{submitting ? 'Posting Transfer to Ledger...' : 'Post Transfer'}</span>
+                <span>{submitting ? 'Posting Transfer...' : 'Post Manual Transfer'}</span>
               </button>
+            </div>
+          </form>
+        </div>
+      )}
 
-              {sourceId === destinationId && (
-                <div className="text-[11px] text-red-600 dark:text-red-400">
-                  Self-transfers are not permitted.
-                </div>
+      {/* Real-Time Multi-Bank Transaction Stepper (Exact Visualizer from Overview & Demo) */}
+      <div className="bg-white dark:bg-[#0f172a] border border-blue-300 dark:border-blue-900/80 rounded-xl p-5 shadow-apple space-y-4">
+        {/* Stepper Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3.5 border-b border-slate-200 dark:border-slate-800">
+          <div>
+            <div className="flex items-center space-x-2">
+              {isScenarioRunning && (
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse inline-block" />
               )}
-            </form>
-
-            {/* Post-Submit Result Banner */}
-            {lastTxResult && (
-              <div className="mt-4 p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-xs space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    Transaction Settled
-                  </span>
-                  <span className="font-mono text-[10px] text-slate-500">
-                    ID: {lastTxResult.id}
-                  </span>
-                </div>
-
-                {recentSignals.length > 0 ? (
-                  <div className="p-2 rounded bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-red-700 dark:text-red-400 text-xs">
-                    <strong>Detection Signal Fired:</strong> {recentSignals.join(', ')}
-                  </div>
-                ) : (
-                  <div className="text-[11px] text-slate-500">
-                    Transaction evaluated by rules engine. No anomaly threshold exceeded.
-                  </div>
-                )}
-              </div>
-            )}
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                {isScenarioRunning
+                  ? `Executing Live ${activeScenarioMeta?.name || 'Scenario'} Simulation (Real-Time Transfer Stepper)`
+                  : liveSteps.length > 0
+                  ? `Simulation Complete: ${scenarioRunSummary?.scenarioName || 'Audited Network'}`
+                  : 'Real-Time Multi-Bank Transaction Stepper'}
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isScenarioRunning
+                ? `Simulating ${liveSteps.length} sequential inter-bank transfers with RBI-compliant programmable e-Rupee token tracking (1.2s per transfer).`
+                : liveSteps.length > 0
+                ? `Successfully audited ${liveSteps.length} sequential transfers across synthetic banking network.`
+                : 'Select any scenario from the catalog above and click Run Scenario to watch live sequential transfers.'}
+            </p>
           </div>
 
-          {/* Event Log Terminal */}
-          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-apple">
-            <h4 className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">
-              Simulation Activity Stream
-            </h4>
-            <div className="bg-slate-50 dark:bg-slate-950 rounded-lg p-3 h-40 overflow-y-auto font-mono text-[11px] text-slate-600 dark:text-slate-300 space-y-1 border border-slate-200/60 dark:border-slate-800/80">
-              {eventLogs.length === 0 ? (
-                <div className="text-slate-400">No events logged yet. Submit a transfer to begin.</div>
-              ) : (
-                eventLogs.map((log, i) => (
-                  <div key={i} className="border-b border-slate-200/40 dark:border-slate-900 pb-0.5">{log}</div>
-                ))
+          {liveSteps.length > 0 && (
+            <div className="flex items-center space-x-3">
+              <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                Transfer {activeStep} of {liveSteps.length}
+              </span>
+              {onNavigateTab && (
+                <button
+                  onClick={() => onNavigateTab('investigation', {
+                    root_account_id: scenarioRunSummary?.rootAccountId
+                  })}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium whitespace-nowrap"
+                >
+                  {isScenarioRunning ? 'Skip to Investigation ➔' : 'Investigate Reconstructed Lineage ➔'}
+                </button>
               )}
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Right Pane: Mini Graph Canvas (5 Cols) */}
-        <div className="lg:col-span-5 flex flex-col space-y-3">
-          <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex-1 flex flex-col shadow-apple">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                Interactive Graph Visualizer
-              </h3>
-              <span className="text-[10px] text-slate-400 font-medium">Cytoscape Engine</span>
-            </div>
-
+        {/* Stepper Progress Bar */}
+        {liveSteps.length > 0 && (
+          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
             <div
-              ref={miniGraphRef}
-              className="mt-3 flex-1 min-h-[360px] w-full bg-slate-50 dark:bg-[#090d16] rounded-lg border border-slate-200 dark:border-slate-800"
+              className="bg-[#1a73e8] h-full transition-all duration-500"
+              style={{
+                width: `${(activeStep / Math.max(1, liveSteps.length)) * 100}%`
+              }}
             />
-
-            <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex items-center space-x-3">
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span> Normal Node</span>
-                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-600 inline-block"></span> Flagged Mule</span>
-              </div>
-              <span>Real-Time Graph</span>
-            </div>
           </div>
+        )}
+
+        {/* Stepper Card Grid Content */}
+        {liveSteps.length === 0 ? (
+          <div className="py-16 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 flex items-center justify-center mx-auto text-[#1a73e8]">
+              <ArrowRightLeft className="w-5 h-5" />
+            </div>
+            <div className="max-w-md mx-auto text-xs text-slate-500 space-y-1.5">
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Ready to Simulate Cross-Bank Movements
+              </p>
+              <p className="leading-relaxed">
+                Choose any scenario (such as Cross-Bank Matrix, Rapid Split Flow, or Commission Retention) and click <strong>Run Scenario</strong>. Each transfer will step sequentially in real time (~1.2s delay) with live e-Rupee token splitting and mule alerts.
+              </p>
+            </div>
+            <button
+              onClick={() => handleRunScenario('scenario_cross_bank_matrix')}
+              className="inline-flex items-center space-x-2 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            >
+              <Play className="w-3 h-3 fill-current" />
+              <span>Launch Cross-Bank Matrix Showcase</span>
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 pt-1">
+            {liveSteps.map((tx) => {
+              const isPast = activeStep > tx.step;
+              const isCurrent = activeStep === tx.step;
+              const isUpcoming = activeStep < tx.step;
+
+              return (
+                <div
+                  key={tx.step}
+                  className={`p-3.5 rounded-lg border text-xs flex flex-col justify-between transition-all ${
+                    isCurrent
+                      ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-400 dark:border-blue-700 shadow-sm ring-1 ring-blue-400/40'
+                      : isPast
+                      ? 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-90'
+                      : 'bg-white dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-40'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono text-[10px] font-semibold text-slate-500">
+                        HOP {tx.step}
+                      </span>
+                      {isCurrent && (
+                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+                          Active...
+                        </span>
+                      )}
+                      {isPast && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                          Settled ✓
+                        </span>
+                      )}
+                      {isUpcoming && (
+                        <span className="text-[10px] text-slate-400">
+                          Pending
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="font-mono font-medium text-slate-900 dark:text-white text-[11px] leading-tight">
+                      <div>{tx.sourceRef} <span className="text-slate-400">({tx.sourceBank})</span></div>
+                      <div className="text-slate-400 text-[10px]">➔ {tx.destRef} ({tx.destBank})</div>
+                    </div>
+
+                    <div className="font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">
+                      {tx.amountFormatted}
+                    </div>
+                    <div className="text-[10px] text-slate-500">via {tx.rail}</div>
+                  </div>
+
+                  <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-1">
+                    <div className="text-[10px] font-mono text-slate-500 truncate" title={tx.tokenAllocation}>
+                      {tx.tokenAllocation}
+                    </div>
+
+                    {tx.isMuleFlagged ? (
+                      <div className="inline-flex items-center space-x-1 text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-900">
+                        <span>🚨 MULE FLAGGED</span>
+                        {tx.ruleCode && <span className="font-normal font-mono truncate max-w-[100px]">({tx.ruleCode})</span>}
+                      </div>
+                    ) : tx.isOffRamp ? (
+                      <div className="inline-flex items-center space-x-1 text-[10px] font-semibold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-950/80 px-1.5 py-0.5 rounded border border-red-300">
+                        <span>🎯 OFF-RAMP</span>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        Normal Settled
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Stepper Footer & Direct Investigation Action */}
+        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center space-x-1.5 text-[11px]">
+            <Shield className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+            <span>🔒 RBI Data Privacy: Lineage audited strictly via programmable e-Rupee token metadata without customer PII leakage.</span>
+          </div>
+
+          {scenarioRunSummary && onNavigateTab && !isScenarioRunning && (
+            <button
+              onClick={() => onNavigateTab('investigation', {
+                root_account_id: scenarioRunSummary.rootAccountId
+              })}
+              className="inline-flex items-center space-x-1.5 bg-[#1a73e8] hover:bg-blue-700 text-white font-medium px-4 py-1.5 rounded-lg text-xs shadow-sm transition-colors whitespace-nowrap self-start sm:self-auto"
+            >
+              <span>Investigate Reconstructed Lineage</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </div>

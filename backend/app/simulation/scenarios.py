@@ -4,7 +4,10 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from sqlalchemy.orm import Session
 
-from backend.app.models.models import Scenario, Account, Bank, Transaction, TransactionEvent, GroundTruthLabel
+from backend.app.models.models import (
+    Scenario, Account, Bank, Transaction, TransactionEvent, GroundTruthLabel,
+    LineageEdge, LineageNode, AlertEvidence, DetectionAlert, TransferAllocation, Investigation
+)
 from backend.app.schemas.schemas import TransactionCreate
 from backend.app.services.ledger_service import LedgerService
 from backend.app.simulation.generator import seed_synthetic_accounts, seed_banks
@@ -187,6 +190,27 @@ class ScenarioEngine:
 
         # Clear existing labels and scenario transactions for this scenario
         db.query(GroundTruthLabel).filter(GroundTruthLabel.scenario_id == scenario_id).delete()
+        existing_txs = db.query(Transaction).filter(Transaction.scenario_id == scenario_id).all()
+        if existing_txs:
+            tx_ids = [t.id for t in existing_txs]
+            db.query(LineageEdge).filter(LineageEdge.transaction_id.in_(tx_ids)).delete(synchronize_session=False)
+            alert_ids = [a.id for a in db.query(DetectionAlert.id).filter(DetectionAlert.trigger_transaction_id.in_(tx_ids)).all()]
+            if alert_ids:
+                inv_ids = [inv.id for inv in db.query(Investigation.id).filter(Investigation.alert_id.in_(alert_ids)).all()]
+                if inv_ids:
+                    db.query(LineageEdge).filter(LineageEdge.investigation_id.in_(inv_ids)).delete(synchronize_session=False)
+                    db.query(LineageNode).filter(LineageNode.investigation_id.in_(inv_ids)).delete(synchronize_session=False)
+                    db.query(Investigation).filter(Investigation.id.in_(inv_ids)).delete(synchronize_session=False)
+
+                db.query(AlertEvidence).filter(AlertEvidence.alert_id.in_(alert_ids)).delete(synchronize_session=False)
+                db.query(DetectionAlert).filter(DetectionAlert.id.in_(alert_ids)).delete(synchronize_session=False)
+
+            db.query(TransferAllocation).filter(
+                (TransferAllocation.source_transaction_id.in_(tx_ids)) | 
+                (TransferAllocation.downstream_transaction_id.in_(tx_ids))
+            ).delete(synchronize_session=False)
+            db.query(TransactionEvent).filter(TransactionEvent.transaction_id.in_(tx_ids)).delete(synchronize_session=False)
+            db.query(Transaction).filter(Transaction.id.in_(tx_ids)).delete(synchronize_session=False)
         db.commit()
 
         base_time = datetime.utcnow() - timedelta(hours=24)
@@ -388,11 +412,23 @@ class ScenarioEngine:
 
     @staticmethod
     def _run_split_flow(db: Session, sc_id: str, accounts: List[Account], t0: datetime, rng: random.Random) -> Dict[str, Any]:
+        victim = accounts[0]
         src = accounts[7]
         mules = accounts[8:11]
-        GroundTruthStore.record_label(db, sc_id, src.id, "ORIGIN_VICTIM", "CENTRAL_INFLOW")
+        GroundTruthStore.record_label(db, sc_id, victim.id, "ORIGIN_VICTIM", "CENTRAL_INFLOW")
+        GroundTruthStore.record_label(db, sc_id, src.id, "SUSPECTED_MULE", "SPLIT_MULE")
         for m in mules:
             GroundTruthStore.record_label(db, sc_id, m.id, "SUSPECTED_MULE", "SMURF_RECIPIENT")
+
+        # Initial victim deposit into central mule
+        LedgerService.post_transfer(db, TransactionCreate(
+            source_account_id=victim.id,
+            destination_account_id=src.id,
+            amount_minor=30000000, # ₹3,00,000
+            rail="IMPS",
+            memo="Investment principal",
+            scenario_id=sc_id
+        ), posted_at=t0)
 
         t = t0
         for m in mules:
@@ -405,7 +441,7 @@ class ScenarioEngine:
                 memo="Split distribution",
                 scenario_id=sc_id
             ), posted_at=t)
-        return {"scenario_id": sc_id, "root_account_id": src.id, "transactions_count": 3}
+        return {"scenario_id": sc_id, "root_account_id": src.id, "transactions_count": 4}
 
     @staticmethod
     def _run_merge_flow(db: Session, sc_id: str, accounts: List[Account], t0: datetime, rng: random.Random) -> Dict[str, Any]:
