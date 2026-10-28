@@ -79,7 +79,38 @@ class DetectionEngine:
         # Update account risk state
         account.risk_state = "SUSPECTED_MULE"
 
-        # Create DetectionAlert
+        # Check if an open alert already exists for this account to avoid duplicate alerts
+        existing_alert = db.query(DetectionAlert).filter(
+            DetectionAlert.account_id == account.id,
+            DetectionAlert.status == "OPEN"
+        ).first()
+
+        if existing_alert:
+            if risk_score > existing_alert.risk_score:
+                existing_alert.risk_score = risk_score
+                existing_alert.severity = severity
+            if trigger_tx:
+                existing_alert.trigger_transaction_id = trigger_tx.id
+
+            # Refresh evidence rows
+            db.query(AlertEvidence).filter(AlertEvidence.alert_id == existing_alert.id).delete()
+            for sig in signals:
+                evidence = AlertEvidence(
+                    id=str(uuid.uuid4()),
+                    alert_id=existing_alert.id,
+                    rule_code=sig.rule_code,
+                    observed_value=sig.observed_value,
+                    threshold=sig.threshold,
+                    explanation=sig.explanation,
+                    related_transaction_ids=sig.related_transaction_ids
+                )
+                db.add(evidence)
+
+            db.commit()
+            db.refresh(existing_alert)
+            return existing_alert
+
+        # Create new DetectionAlert
         alert_id = str(uuid.uuid4())
         alert = DetectionAlert(
             id=alert_id,

@@ -10,6 +10,7 @@ from backend.app.simulation.scenarios import (
     SCENARIO_CATALOGUE, ScenarioEngine, register_scenario_catalogue
 )
 from backend.app.services.detection_service import DetectionService
+from backend.app.detection.scoring import DetectionEngine
 from backend.app.services.event_service import event_bus
 from backend.app.core.errors import ResourceNotFoundError
 
@@ -35,12 +36,29 @@ class ScenarioService:
     def run_scenario(db: Session, scenario_id: str, custom_seed: Optional[int] = None) -> Dict[str, Any]:
         result = ScenarioEngine.run_scenario(db, scenario_id, custom_seed)
         
-        # After generating transfers, run detection across involved transactions
-        recent_txs = db.query(Transaction).filter(Transaction.scenario_id == scenario_id).all()
-        generated_alerts = []
+        # After generating transfers, run detection across involved unique accounts
+        recent_txs = (
+            db.query(Transaction)
+            .filter(Transaction.scenario_id == scenario_id)
+            .order_by(Transaction.initiated_at.asc())
+            .all()
+        )
+        involved_account_ids = []
         for tx in recent_txs:
-            alerts = DetectionService.process_transaction_detection(db, tx)
-            generated_alerts.extend(alerts)
+            if tx.destination_account_id not in involved_account_ids:
+                involved_account_ids.append(tx.destination_account_id)
+            if tx.source_account_id not in involved_account_ids:
+                involved_account_ids.append(tx.source_account_id)
+
+        generated_alerts = []
+        seen_alert_ids = set()
+        for acc_id in involved_account_ids:
+            acc = db.query(Account).filter(Account.id == acc_id).first()
+            if acc:
+                alert = DetectionEngine.evaluate_account(db, acc)
+                if alert and alert.id not in seen_alert_ids:
+                    seen_alert_ids.add(alert.id)
+                    generated_alerts.append(alert)
 
         event_bus.publish_nowait("SIMULATION_STEP", {
             "scenario_id": scenario_id,

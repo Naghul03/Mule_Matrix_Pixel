@@ -90,14 +90,14 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
     }
   };
 
-  // Sequential Lineage Traversal Player State
+  // Sequential Lineage Traversal Player State (Ordered chronologically by fund transfer time)
   const sortedEdges = React.useMemo(() => {
     if (!investigation?.edges) return [];
     return [...investigation.edges].sort((a, b) => {
-      if (a.hop_depth !== b.hop_depth) return a.hop_depth - b.hop_depth;
       const tA = a.posted_at ? new Date(a.posted_at).getTime() : 0;
       const tB = b.posted_at ? new Date(b.posted_at).getTime() : 0;
-      return tA - tB;
+      if (tA !== tB) return tA - tB;
+      return a.hop_depth - b.hop_depth;
     });
   }, [investigation]);
 
