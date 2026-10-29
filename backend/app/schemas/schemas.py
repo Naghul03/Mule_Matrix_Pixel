@@ -134,6 +134,18 @@ class LineageNodeRead(BaseModel):
     is_origin: bool
     risk_state: str
 
+class LineagePathRead(BaseModel):
+    path_id: str
+    path_type: str # ATTRIBUTED, CANDIDATE
+    nodes: List[str]
+    node_ids: List[str] = []
+    edges: List[str] = []
+    total_amount_minor: int = 0
+    attributed_amount_minor: int = 0
+    hop_count: int = 0
+    confidence: float = 1.0
+    explanation: str = ""
+
 class LineageEdgeRead(BaseModel):
     id: str
     transaction_id: str
@@ -151,6 +163,10 @@ class LineageEdgeRead(BaseModel):
     posted_at: Optional[datetime] = None
     rail: str
     is_cross_bank: bool
+    edge_type: str = "ATTRIBUTED" # ATTRIBUTED, CANDIDATE, EXCLUDED
+    attributed_amount_minor: int = 0
+    exclusion_reason: Optional[str] = None
+    allocation_assumptions: Optional[Dict[str, Any]] = None
 
 class InvestigationCreate(BaseModel):
     root_account_id: str
@@ -179,7 +195,8 @@ class InvestigationRead(BaseModel):
 class InvestigationDetailRead(InvestigationRead):
     nodes: List[LineageNodeRead] = []
     edges: List[LineageEdgeRead] = []
-    candidate_paths: List[List[str]] = []
+    candidate_paths: List[Any] = []
+    attributed_paths: List[Any] = []
     timeline: List[Dict[str, Any]] = []
 
 # Scenario Schemas
@@ -216,6 +233,9 @@ class EvaluationMetrics(BaseModel):
     false_positives: int
     false_negatives: int
     true_negatives: int
+    source_recovery: Optional[float] = None
+    terminal_recovery: Optional[float] = None
+    attribution_error: Optional[float] = None
 
 class EvaluationComparison(BaseModel):
     baseline_metrics: EvaluationMetrics

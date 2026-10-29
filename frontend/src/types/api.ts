@@ -122,6 +122,22 @@ export interface LineageEdge {
   posted_at?: string;
   rail: string;
   is_cross_bank: boolean;
+  edge_type?: "ATTRIBUTED" | "CANDIDATE" | "EXCLUDED";
+  attributed_amount_minor?: number;
+  exclusion_reason?: string;
+  allocation_assumptions?: Record<string, any>;
+}
+
+export interface LineagePath {
+  path_id: string;
+  path_type: "ATTRIBUTED" | "CANDIDATE";
+  nodes: string[];
+  edges: string[];
+  total_amount_minor: number;
+  attributed_amount_minor: number;
+  hop_count: number;
+  confidence: number;
+  explanation: string;
 }
 
 export interface InvestigationDetail {
@@ -152,7 +168,8 @@ export interface InvestigationDetail {
   };
   nodes: LineageNode[];
   edges: LineageEdge[];
-  candidate_paths: string[][];
+  candidate_paths: any[];
+  attributed_paths?: LineagePath[];
   timeline: Array<{
     timestamp: string;
     transaction_id: string;

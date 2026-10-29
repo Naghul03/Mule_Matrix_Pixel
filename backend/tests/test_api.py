@@ -62,6 +62,10 @@ def test_scenarios_and_investigation_workflow(client):
     inv_data = inv_resp.json()
     assert len(inv_data["nodes"]) > 0
     assert len(inv_data["edges"]) > 0
+    assert "edge_type" in inv_data["edges"][0]
+    assert "attributed_amount_minor" in inv_data["edges"][0]
+    assert "candidate_paths" in inv_data
+    assert "attributed_paths" in inv_data
 
     # 4. Export HTML report
     export_resp = client.get(f"/api/investigations/{inv_data['id']}/export?format=html")

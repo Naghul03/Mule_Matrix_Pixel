@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Set, Tuple
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -25,10 +25,10 @@ class LineageService:
         if not acc:
             raise ResourceNotFoundError(f"Root account {root_account_id} not found.")
 
-        # If alert_id provided, ensure it exists
+        # If alert_id provided, ensure it exists and matches root account
         if alert_id:
             alert = db.query(DetectionAlert).filter(DetectionAlert.id == alert_id).first()
-            if alert and not trigger_transaction_id:
+            if alert and alert.account_id == root_account_id and not trigger_transaction_id:
                 trigger_transaction_id = alert.trigger_transaction_id
 
         inv = Investigation(
@@ -162,7 +162,11 @@ class LineageService:
                 "confidence": e.confidence,
                 "posted_at": tx.posted_at.isoformat() if (tx and tx.posted_at) else None,
                 "rail": tx.rail if tx else "IMPS",
-                "is_cross_bank": is_cross
+                "is_cross_bank": is_cross,
+                "edge_type": e.edge_type or "ATTRIBUTED",
+                "attributed_amount_minor": e.attributed_amount_minor or 0,
+                "exclusion_reason": e.exclusion_reason,
+                "allocation_assumptions": e.allocation_assumptions or {}
             }
             enriched_edges.append(edge_dict)
             timeline.append({
@@ -178,22 +182,26 @@ class LineageService:
                 "confidence": e.confidence,
                 "allocation_method": e.allocation_method,
                 "rail": tx.rail if tx else "IMPS",
-                "memo": tx.memo if tx else ""
+                "memo": tx.memo if tx else "",
+                "edge_type": e.edge_type or "ATTRIBUTED",
+                "attributed_amount_minor": e.attributed_amount_minor or 0,
+                "exclusion_reason": e.exclusion_reason
             })
 
         timeline.sort(key=lambda x: x["timestamp"])
 
         root_acc = db.query(Account).filter(Account.id == inv.root_account_id).first()
         root_bank = db.query(Bank).filter(Bank.id == root_acc.bank_id).first() if root_acc else None
+        root_ref = root_acc.account_ref if root_acc else "UNKNOWN"
 
-        # Reconstruct candidate paths (simple path aggregation from edges)
-        candidate_paths = LineageService._reconstruct_paths(inv.root_account_id, enriched_edges)
+        # Reconstruct structured paths (separating Attributed vs Candidate paths)
+        attributed_paths, candidate_paths = LineageService._reconstruct_topological_paths(root_ref, enriched_edges)
 
         return {
             "id": inv.id,
             "alert_id": inv.alert_id,
             "root_account_id": inv.root_account_id,
-            "root_account_ref": root_acc.account_ref if root_acc else "UNKNOWN",
+            "root_account_ref": root_ref,
             "root_bank_code": root_bank.bank_code if root_bank else "UNK",
             "started_at": inv.started_at,
             "completed_at": inv.completed_at,
@@ -204,32 +212,134 @@ class LineageService:
             "nodes": enriched_nodes,
             "edges": enriched_edges,
             "candidate_paths": candidate_paths,
+            "attributed_paths": attributed_paths,
             "timeline": timeline
         }
 
     @staticmethod
-    def _reconstruct_paths(root_acc_id: str, edges: List[Dict[str, Any]]) -> List[List[str]]:
+    def _reconstruct_topological_paths(root_ref: str, edges: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
-        Reconstructs primary candidate paths through root account.
+        Reconstructs real, connected topological paths through the network,
+        strictly classifying each path as ATTRIBUTED vs CANDIDATE.
+        Prevents cycles and duplicate path reporting.
         """
-        if not edges:
-            return [[root_acc_id]]
-            
-        backward_edges = [e for e in edges if e["direction"] == "BACKWARD"]
-        forward_edges = [e for e in edges if e["direction"] == "FORWARD"]
+        active_edges = [e for e in edges if e.get("edge_type") != "EXCLUDED"]
+        if not active_edges:
+            trivial_path = {
+                "path_id": "PATH-0",
+                "path_type": "CANDIDATE",
+                "nodes": [root_ref],
+                "edges": [],
+                "total_amount_minor": 0,
+                "attributed_amount_minor": 0,
+                "hop_count": 0,
+                "confidence": 1.0,
+                "explanation": "Isolated root node with no active settled edges."
+            }
+            return [], [trivial_path]
 
-        paths = []
-        if backward_edges and forward_edges:
-            for b in backward_edges[:3]:
-                for f in forward_edges[:3]:
-                    paths.append([b["source_account_ref"], b["destination_account_ref"], f["destination_account_ref"]])
-        elif backward_edges:
-            for b in backward_edges[:5]:
-                paths.append([b["source_account_ref"], b["destination_account_ref"]])
-        elif forward_edges:
-            for f in forward_edges[:5]:
-                paths.append([f["source_account_ref"], f["destination_account_ref"]])
+        # Adjacency maps
+        fwd_adj: Dict[str, List[Dict[str, Any]]] = {}
+        bwd_adj: Dict[str, List[Dict[str, Any]]] = {}
+        for e in active_edges:
+            s, d = e["source_account_ref"], e["destination_account_ref"]
+            fwd_adj.setdefault(s, []).append(e)
+            bwd_adj.setdefault(d, []).append(e)
+
+        # 1. Trace all backward chains ending at root
+        backward_chains: List[List[Dict[str, Any]]] = []
+        def dfs_backward(curr: str, chain: List[Dict[str, Any]], visited: Set[str]):
+            in_edges = [e for e in bwd_adj.get(curr, []) if e["source_account_ref"] not in visited]
+            if not in_edges:
+                if chain:
+                    backward_chains.append(list(reversed(chain)))
+                return
+            for e in in_edges:
+                src = e["source_account_ref"]
+                dfs_backward(src, chain + [e], visited | {src})
+
+        dfs_backward(root_ref, [], {root_ref})
+
+        # 2. Trace all forward chains starting at root
+        forward_chains: List[List[Dict[str, Any]]] = []
+        def dfs_forward(curr: str, chain: List[Dict[str, Any]], visited: Set[str]):
+            out_edges = [e for e in fwd_adj.get(curr, []) if e["destination_account_ref"] not in visited]
+            if not out_edges:
+                if chain:
+                    forward_chains.append(chain)
+                return
+            for e in out_edges:
+                dst = e["destination_account_ref"]
+                dfs_forward(dst, chain + [e], visited | {dst})
+
+        dfs_forward(root_ref, [], {root_ref})
+
+        # Combine backward and forward chains into complete end-to-end paths
+        combined_edge_paths: List[List[Dict[str, Any]]] = []
+        if backward_chains and forward_chains:
+            for b in backward_chains[:5]:
+                for f in forward_chains[:5]:
+                    combined_edge_paths.append(b + f)
+        elif backward_chains:
+            combined_edge_paths = backward_chains[:10]
+        elif forward_chains:
+            combined_edge_paths = forward_chains[:10]
         else:
-            paths.append([root_acc_id])
+            # Fallback direct edges
+            combined_edge_paths = [[e] for e in active_edges[:10]]
 
-        return paths
+        attributed_results = []
+        candidate_results = []
+        seen_node_tuples = set()
+
+        for idx, edge_list in enumerate(combined_edge_paths):
+            if not edge_list:
+                continue
+            # Build node sequence
+            node_seq = [edge_list[0]["source_account_ref"]]
+            for ed in edge_list:
+                node_seq.append(ed["destination_account_ref"])
+
+            seq_key = tuple(node_seq)
+            if seq_key in seen_node_tuples:
+                continue
+            seen_node_tuples.add(seq_key)
+
+            total_amt = sum(e["amount_minor"] for e in edge_list)
+            attributed_amt = min(e["attributed_amount_minor"] for e in edge_list)
+            confs = [e["confidence"] for e in edge_list]
+            avg_conf = round(sum(confs) / len(confs), 2) if confs else 1.0
+
+            # Path classification:
+            # If all edges along the path have positive attributed amount and ATTRIBUTED type -> ATTRIBUTED
+            # If any edge has zero attributed amount or is CANDIDATE -> CANDIDATE
+            is_attributed = all(
+                e.get("edge_type") == "ATTRIBUTED" and e.get("attributed_amount_minor", 0) > 0
+                for e in edge_list
+            )
+
+            path_type = "ATTRIBUTED" if is_attributed else "CANDIDATE"
+            explanation = (
+                f"Suspicious fund allocation estimated to flow along {len(edge_list)} hops (Attributed: ₹{attributed_amt/100:,.2f})."
+                if is_attributed else
+                f"Candidate transaction route observed across {len(edge_list)} hops, but fund attribution is zero or uncertain under FIFO."
+            )
+
+            path_obj = {
+                "path_id": f"PATH-{idx+1}",
+                "path_type": path_type,
+                "nodes": node_seq,
+                "edges": [e["transaction_id"] for e in edge_list],
+                "total_amount_minor": total_amt,
+                "attributed_amount_minor": attributed_amt if is_attributed else 0,
+                "hop_count": len(edge_list),
+                "confidence": avg_conf,
+                "explanation": explanation
+            }
+
+            if is_attributed:
+                attributed_results.append(path_obj)
+            else:
+                candidate_results.append(path_obj)
+
+        return attributed_results, candidate_results

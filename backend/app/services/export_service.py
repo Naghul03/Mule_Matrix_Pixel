@@ -93,6 +93,37 @@ HTML_REPORT_TEMPLATE = """
         </div>
 
         <div class="card">
+            <h3 style="margin-top: 0; color: #f1f5f9;">Reconstructed Lineage Routes (Attributed vs Candidate)</h3>
+            <div>
+                <h4 style="color: #38bdf8; font-size: 13px; text-transform: uppercase; margin-bottom: 8px;">Attributed Lineage Paths (Suspicious Movement Verified via FIFO)</h4>
+                {% if investigation.attributed_paths %}
+                    {% for p in investigation.attributed_paths %}
+                    <div style="background: #2a1215; border: 1px solid #991b1b; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                        <span class="badge badge-critical">ATTRIBUTED</span>
+                        <strong class="mono" style="margin-left: 8px; color: #fecdd3;">{{ p.nodes|join(' &rarr; ') }}</strong>
+                        <div style="font-size: 12px; color: #fda4af; margin-top: 4px;">{{ p.explanation }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="color: #94a3b8; font-size: 13px; margin-bottom: 12px;">No fully attributed end-to-end paths meeting certainty threshold.</div>
+                {% endif %}
+
+                <h4 style="color: #94a3b8; font-size: 13px; text-transform: uppercase; margin-top: 16px; margin-bottom: 8px;">Candidate Settlement Routes (Observed Routes with Zero or Uncertain Attributed Flow)</h4>
+                {% if investigation.candidate_paths %}
+                    {% for p in investigation.candidate_paths %}
+                    <div style="background: #1e293b; border: 1px solid #334155; padding: 10px; border-radius: 4px; margin-bottom: 8px;">
+                        <span class="badge badge-info">CANDIDATE</span>
+                        <strong class="mono" style="margin-left: 8px;">{% if p.nodes %}{{ p.nodes|join(' &rarr; ') }}{% else %}{{ p|join(' &rarr; ') }}{% endif %}</strong>
+                        <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">{% if p.explanation %}{{ p.explanation }}{% else %}Observed route preserved in transaction graph; zero suspicious allocation under FIFO.{% endif %}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div style="color: #94a3b8; font-size: 13px;">No candidate routes recorded.</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card">
             <h3 style="margin-top: 0; color: #f1f5f9;">Reconstructed Chronological Lineage Timeline</h3>
             <table>
                 <thead>
@@ -102,7 +133,8 @@ HTML_REPORT_TEMPLATE = """
                         <th>To Account</th>
                         <th>Rail</th>
                         <th>Amount</th>
-                        <th>Attribution Method</th>
+                        <th>Attributed</th>
+                        <th>Classification</th>
                         <th>Confidence</th>
                     </tr>
                 </thead>
@@ -114,7 +146,8 @@ HTML_REPORT_TEMPLATE = """
                         <td><span class="mono">{{ item.destination_account_ref }}</span> ({{ item.destination_bank_code }})</td>
                         <td>{{ item.rail }}</td>
                         <td style="font-weight: 600; color: #38bdf8;">₹{{ (item.amount_minor / 100)|round(2) }}</td>
-                        <td>{{ item.allocation_method }}</td>
+                        <td style="font-weight: 600; color: #f43f5e;">₹{{ ((item.attributed_amount_minor or 0) / 100)|round(2) }}</td>
+                        <td><span class="badge {% if item.edge_type == 'ATTRIBUTED' %}badge-critical{% else %}badge-info{% endif %}">{{ item.edge_type or 'ATTRIBUTED' }}</span></td>
                         <td>{{ (item.confidence * 100)|round(0) }}%</td>
                     </tr>
                     {% endfor %}

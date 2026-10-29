@@ -23,7 +23,9 @@ from backend.app.api.routes import (
     simulation,
     evaluations,
     settings as settings_route,
-    events
+    events,
+    analytics,
+    federated
 )
 
 setup_logging()
@@ -94,6 +96,8 @@ app.include_router(simulation.router, prefix="/api", tags=["Simulation Control"]
 app.include_router(evaluations.router, prefix="/api", tags=["Evaluation & Benchmarks"])
 app.include_router(settings_route.router, prefix="/api", tags=["Settings"])
 app.include_router(events.router, prefix="/api", tags=["Event Streaming"])
+app.include_router(analytics.router, prefix="/api", tags=["Graph Analytics & ML"])
+app.include_router(federated.router, prefix="/api", tags=["Federated Multi-Bank Learning"])
 
 @app.get("/")
 def root():

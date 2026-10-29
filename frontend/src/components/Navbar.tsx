@@ -9,6 +9,7 @@ import { useTheme } from '../context/ThemeContext';
 export type TabType = 
   | 'overview' 
   | 'simulator' 
+  | 'explorer'
   | 'alerts' 
   | 'investigation' 
   | 'scenarios' 
@@ -34,10 +35,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   const tabs: { id: TabType; index: string; label: string; count?: number }[] = [
     { id: 'overview', index: '01', label: 'Overview' },
     { id: 'simulator', index: '02', label: 'Simulator' },
-    { id: 'alerts', index: '03', label: 'Alerts & Risk', count: alertCount },
-    { id: 'investigation', index: '04', label: 'Investigation' },
-    { id: 'scenarios', index: '05', label: 'Scenario Lab' },
-    { id: 'settings', index: '06', label: 'Settings' },
+    { id: 'explorer', index: '03', label: 'Network Explorer' },
+    { id: 'alerts', index: '04', label: 'Alerts & Risk', count: alertCount },
+    { id: 'investigation', index: '05', label: 'Investigation' },
+    { id: 'scenarios', index: '06', label: 'Scenario Lab' },
+    { id: 'settings', index: '07', label: 'Settings' },
   ];
 
   return (

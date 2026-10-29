@@ -162,6 +162,10 @@ class LineageEdge(Base):
     hop_depth = Column(Integer, default=0)
     allocation_method = Column(String(50), default="ESTIMATED_FLOW")
     confidence = Column(Float, default=1.0)
+    edge_type = Column(String(30), default="ATTRIBUTED") # ATTRIBUTED, CANDIDATE, EXCLUDED
+    attributed_amount_minor = Column(BigInteger, default=0)
+    exclusion_reason = Column(String(255), nullable=True)
+    allocation_assumptions = Column(JSON, nullable=True)
     
     investigation = relationship("Investigation", back_populates="edges")
     transaction = relationship("Transaction")
