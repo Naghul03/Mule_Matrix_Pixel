@@ -56,21 +56,12 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           });
           setInvestigation(inv);
         } else {
-          await api.runScenario('scenario_cross_bank_matrix', 101);
-          const newAlerts = await api.getAlerts({ limit: 1 });
-          if (newAlerts.length > 0) {
-            const inv = await api.createInvestigation({
-              root_account_id: newAlerts[0].account_id,
-              alert_id: newAlerts[0].id,
-              lookback_hours: 72,
-              lookahead_hours: 72
-            });
-            setInvestigation(inv);
-          }
+          setInvestigation(null);
         }
       }
     } catch (e) {
       console.error(e);
+      setInvestigation(null);
     } finally {
       setLoading(false);
     }
@@ -127,7 +118,19 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
 
   // Cytoscape rendering with Swiss styling and sequential reveal
   useEffect(() => {
-    if (!graphContainerRef.current || !investigation) return;
+    if (!graphContainerRef.current) return;
+    if (!investigation) {
+      if (cyRef.current) {
+        cyRef.current.destroy();
+        cyRef.current = null;
+      }
+      return;
+    }
+
+    if (cyRef.current) {
+      cyRef.current.destroy();
+      cyRef.current = null;
+    }
 
     let activeEdges = sortedEdges.slice(0, currentHop);
 
@@ -209,10 +212,6 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
         }
       });
     });
-
-    if (cyRef.current) {
-      cyRef.current.destroy();
-    }
 
     const cy = cytoscape({
       container: graphContainerRef.current,
@@ -327,9 +326,9 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
               Lineage Reconstruction.
             </h1>
             <div className="flex items-center space-x-3 text-xs font-mono text-neutral-500 dark:text-neutral-400 mt-1">
-              <span>DOSSIER: <strong className="text-neutral-900 dark:text-neutral-100">#{investigation?.id.slice(0, 8) || 'ACTIVE'}</strong></span>
+              <span>DOSSIER: <strong className="text-neutral-900 dark:text-neutral-100">#{investigation ? investigation.id.slice(0, 8) : 'NONE'}</strong></span>
               <span>•</span>
-              <span>TRIGGER ACCOUNT: <strong className="text-swiss-red font-bold">{investigation?.root_account_ref}</strong> ({investigation?.root_bank_code})</span>
+              <span>TRIGGER ACCOUNT: <strong className="text-swiss-red font-bold">{investigation?.root_account_ref || 'NONE'}</strong> {investigation ? `(${investigation.root_bank_code})` : ''}</span>
             </div>
           </div>
 
@@ -337,21 +336,23 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleExport('html')}
-              className="border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-neutral-900 text-neutral-800 dark:text-neutral-200 font-mono font-bold px-3 py-2 text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-colors"
+              disabled={!investigation}
+              className="border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-neutral-900 text-neutral-800 dark:text-neutral-200 font-mono font-bold px-3 py-2 text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-colors disabled:opacity-40"
             >
               <Download className="w-3.5 h-3.5 text-swiss-red" />
               <span>EXPORT HTML</span>
             </button>
             <button
               onClick={() => handleExport('json')}
-              className="border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-neutral-900 text-neutral-800 dark:text-neutral-200 font-mono font-bold px-3 py-2 text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-colors"
+              disabled={!investigation}
+              className="border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-neutral-900 text-neutral-800 dark:text-neutral-200 font-mono font-bold px-3 py-2 text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-colors disabled:opacity-40"
             >
               <FileText className="w-3.5 h-3.5 text-neutral-500" />
               <span>EXPORT JSON</span>
             </button>
             <button
               onClick={handleRetrace}
-              disabled={loading}
+              disabled={loading || !investigation}
               className="bg-swiss-red hover:bg-swiss-redHover text-white font-mono font-bold px-4 py-2 text-xs uppercase tracking-wider flex items-center space-x-2 transition-colors disabled:opacity-50"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -549,7 +550,19 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           </div>
 
           {/* Graph DOM */}
-          <div ref={graphContainerRef} className="w-full flex-1 bg-[#FAFAFA] dark:bg-[#0C0D0E] border border-neutral-200 dark:border-neutral-800 mt-3" />
+          <div ref={graphContainerRef} className="w-full flex-1 bg-[#FAFAFA] dark:bg-[#0C0D0E] border border-neutral-200 dark:border-neutral-800 mt-3 relative">
+            {!investigation && !loading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-xs font-mono text-neutral-400">
+                <span className="w-2 h-2 bg-swiss-red inline-block mb-2" />
+                <span className="font-bold uppercase tracking-wider text-neutral-900 dark:text-white text-xs">
+                  No Active Investigation Dossier
+                </span>
+                <p className="max-w-md text-neutral-500 dark:text-neutral-400 text-[11px] mt-1 font-sans">
+                  Run a scenario in the Simulator or select an alert to trigger explainable multi-hop lineage reconstruction.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Active Movement Narrative Bar */}
           {activeMovement && (
@@ -800,26 +813,34 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                {investigation?.timeline.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/30">
-                    <td className="py-2.5 text-neutral-500">{item.timestamp}</td>
-                    <td className="py-2.5 font-bold text-neutral-900 dark:text-neutral-100">
-                      {item.source_account_ref} ({item.source_bank_code})
+                {(!investigation || !investigation.timeline?.length) ? (
+                  <tr>
+                    <td colSpan={8} className="py-8 text-center text-neutral-400 font-mono text-xs">
+                      No chronological timeline events recorded.
                     </td>
-                    <td className="py-2.5 font-bold text-neutral-900 dark:text-neutral-100">
-                      {item.destination_account_ref} ({item.destination_bank_code})
-                    </td>
-                    <td className="py-2.5 text-neutral-600 dark:text-neutral-400 font-sans">{item.rail}</td>
-                    <td className="py-2.5 font-black text-neutral-900 dark:text-white tabular-nums">
-                      ₹{(item.amount_minor / 100).toLocaleString()}
-                    </td>
-                    <td className="py-2.5 text-neutral-500 text-[10px]">{item.allocation_method}</td>
-                    <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-bold">
-                      {Math.round(item.confidence * 100)}%
-                    </td>
-                    <td className="py-2.5 text-neutral-400 italic text-[11px] font-sans">{item.memo || '—'}</td>
                   </tr>
-                ))}
+                ) : (
+                  investigation.timeline.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/30">
+                      <td className="py-2.5 text-neutral-500">{item.timestamp}</td>
+                      <td className="py-2.5 font-bold text-neutral-900 dark:text-neutral-100">
+                        {item.source_account_ref} ({item.source_bank_code})
+                      </td>
+                      <td className="py-2.5 font-bold text-neutral-900 dark:text-neutral-100">
+                        {item.destination_account_ref} ({item.destination_bank_code})
+                      </td>
+                      <td className="py-2.5 text-neutral-600 dark:text-neutral-400 font-sans">{item.rail}</td>
+                      <td className="py-2.5 font-black text-neutral-900 dark:text-white tabular-nums">
+                        ₹{(item.amount_minor / 100).toLocaleString()}
+                      </td>
+                      <td className="py-2.5 text-neutral-500 text-[10px]">{item.allocation_method}</td>
+                      <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                        {Math.round(item.confidence * 100)}%
+                      </td>
+                      <td className="py-2.5 text-neutral-400 italic text-[11px] font-sans">{item.memo || '—'}</td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -840,33 +861,41 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-                {investigation?.edges.map((e, idx) => (
-                  <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/30">
-                    <td className="py-2.5 font-bold text-swiss-red">HOP {e.hop_depth}</td>
-                    <td className="py-2.5">
-                      <span className="text-[10px] font-bold border border-neutral-300 dark:border-neutral-700 px-1.5 py-0.5">
-                        {e.direction}
-                      </span>
-                    </td>
-                    <td className="py-2.5 font-bold">{e.source_account_ref} ({e.source_bank_code})</td>
-                    <td className="py-2.5 font-bold">{e.destination_account_ref} ({e.destination_bank_code})</td>
-                    <td className="py-2.5 font-black text-neutral-900 dark:text-white tabular-nums">
-                      ₹{(e.amount_minor / 100).toLocaleString()}
-                    </td>
-                    <td className="py-2.5">
-                      {e.is_cross_bank ? (
-                        <span className="text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 px-1.5 py-0.5">
-                          YES
-                        </span>
-                      ) : (
-                        <span className="text-neutral-400">NO</span>
-                      )}
-                    </td>
-                    <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-bold">
-                      {Math.round(e.confidence * 100)}%
+                {(!investigation || !investigation.edges?.length) ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-neutral-400 font-mono text-xs">
+                      No hop movements found in active dossier.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  investigation.edges.map((e, idx) => (
+                    <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/30">
+                      <td className="py-2.5 font-bold text-swiss-red">HOP {e.hop_depth}</td>
+                      <td className="py-2.5">
+                        <span className="text-[10px] font-bold border border-neutral-300 dark:border-neutral-700 px-1.5 py-0.5">
+                          {e.direction}
+                        </span>
+                      </td>
+                      <td className="py-2.5 font-bold">{e.source_account_ref} ({e.source_bank_code})</td>
+                      <td className="py-2.5 font-bold">{e.destination_account_ref} ({e.destination_bank_code})</td>
+                      <td className="py-2.5 font-black text-neutral-900 dark:text-white tabular-nums">
+                        ₹{(e.amount_minor / 100).toLocaleString()}
+                      </td>
+                      <td className="py-2.5">
+                        {e.is_cross_bank ? (
+                          <span className="text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 px-1.5 py-0.5">
+                            YES
+                          </span>
+                        ) : (
+                          <span className="text-neutral-400">NO</span>
+                        )}
+                      </td>
+                      <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                        {Math.round(e.confidence * 100)}%
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -874,16 +903,22 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
 
         {activeTabPanel === 'paths' && (
           <div className="space-y-3 font-mono text-xs">
-            {investigation?.candidate_paths.map((p, idx) => (
-              <div key={idx} className="p-4 border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 flex items-center space-x-3">
-                <span className="text-swiss-red font-bold uppercase text-[10px]">
-                  PATH #{String(idx + 1).padStart(2, '0')}:
-                </span>
-                <span className="text-neutral-900 dark:text-neutral-100 font-bold">
-                  {p.join('  ⟶  ')}
-                </span>
+            {(!investigation || !investigation.candidate_paths?.length) ? (
+              <div className="py-8 text-center text-neutral-400 font-mono text-xs">
+                No candidate paths reconstructed.
               </div>
-            ))}
+            ) : (
+              investigation.candidate_paths.map((p, idx) => (
+                <div key={idx} className="p-4 border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 flex items-center space-x-3">
+                  <span className="text-swiss-red font-bold uppercase text-[10px]">
+                    PATH #{String(idx + 1).padStart(2, '0')}:
+                  </span>
+                  <span className="text-neutral-900 dark:text-neutral-100 font-bold">
+                    {p.join('  ⟶  ')}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         )}
       </div>
