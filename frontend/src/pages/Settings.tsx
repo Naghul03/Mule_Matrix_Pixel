@@ -57,64 +57,82 @@ export const Settings: React.FC = () => {
     });
   };
 
-  if (!settings) return <div className="text-slate-400 text-xs py-8">Loading configuration settings...</div>;
+  if (!settings) {
+    return (
+      <div className="text-neutral-400 font-mono text-xs py-12 text-center uppercase">
+        LOADING SYSTEM CONFIGURATION ARCHITECTURE...
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900/60 flex items-center justify-center text-[#1a73e8]">
-            <Sliders className="w-4 h-4" />
-          </div>
+    <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn">
+      {/* Swiss Section Header */}
+      <div className="border-b-2 border-neutral-900 dark:border-neutral-100 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-white tracking-tight">
-              Detection & Traversal Settings
-            </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Configure explainable detector thresholds, time windows, and bounded traversal budgets
+            <div className="flex items-center space-x-2 text-[11px] font-mono uppercase tracking-widest text-swiss-red font-bold">
+              <span>06 // SYSTEM & RULES</span>
+              <span className="text-neutral-400">—</span>
+              <span className="text-neutral-500">ENGINE CONFIGURATION</span>
+            </div>
+            <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-neutral-900 dark:text-neutral-100 mt-1">
+              System & Thresholds.
+            </h1>
+            <p className="text-xs font-mono text-neutral-500 dark:text-neutral-400 mt-1">
+              Configure explainable detector thresholds, time windows, and bounded traversal budgets.
             </p>
           </div>
-        </div>
 
-        <button
-          onClick={handleResetDefaults}
-          className="inline-flex items-center space-x-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 bg-white dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 transition-colors shadow-sm"
-        >
-          <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
-          <span>Reset Defaults</span>
-        </button>
+          <button
+            onClick={handleResetDefaults}
+            className="border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-neutral-900 text-neutral-800 dark:text-neutral-200 font-mono font-bold px-3 py-2 text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-neutral-500" />
+            <span>RESET DEFAULTS</span>
+          </button>
+        </div>
       </div>
 
       {saveSuccess && (
-        <div className="p-3.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900 text-emerald-800 dark:text-emerald-200 text-xs flex items-center gap-2">
+        <div className="p-4 border-2 border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200 text-xs font-mono flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-          <span>Engine configuration successfully saved and applied to runtime detection.</span>
+          <span>ENGINE CONFIGURATION PERSISTED. APPLIED TO ACTIVE DETECTOR ENSEMBLE.</span>
         </div>
       )}
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-8 font-mono">
         {/* Detection Engine Configuration */}
-        <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
-            <ShieldCheck className="w-4 h-4 text-[#1a73e8]" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Detection Algorithm Parameters</h3>
+        <div className="bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-6 space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-900 dark:border-neutral-100">
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] uppercase tracking-widest text-swiss-red font-bold">06.1 //</span>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 dark:text-white">
+                Detection Algorithm Parameters
+              </h2>
+            </div>
+            <span className="text-[9px] text-neutral-400 uppercase">RUN-TIME SCORING RULES</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Active Detector Version</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Active Detector Version
+              </label>
               <select
                 value={settings.detector_version}
                 onChange={(e) => setSettings({ ...settings, detector_version: e.target.value })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               >
                 <option value="v2_candidate_matrix">v2_candidate_matrix (Explainable Multi-Signal Engine)</option>
                 <option value="v1_baseline">v1_baseline (Traditional Velocity Baseline)</option>
               </select>
             </div>
 
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Composite Risk Alert Threshold</label>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Composite Risk Alert Threshold (0-100)
+              </label>
               <input
                 type="number"
                 step="1"
@@ -122,13 +140,15 @@ export const Settings: React.FC = () => {
                 max="100"
                 value={settings.risk_alert_threshold}
                 onChange={(e) => setSettings({ ...settings, risk_alert_threshold: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
-              <span className="text-[11px] text-slate-500">Alert raised if composite score exceeds this threshold (0-100)</span>
+              <span className="text-[10px] text-neutral-500 block">Triggers investigation docket when breached</span>
             </div>
 
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Pass-Through Forwarding Ratio</label>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Pass-Through Forwarding Ratio
+              </label>
               <input
                 type="number"
                 step="0.05"
@@ -136,119 +156,139 @@ export const Settings: React.FC = () => {
                 max="1.0"
                 value={settings.pass_through_ratio_threshold}
                 onChange={(e) => setSettings({ ...settings, pass_through_ratio_threshold: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
-              <span className="text-[11px] text-slate-500">e.g. 0.85 = 85% outbound pass-through ratio</span>
+              <span className="text-[10px] text-neutral-500 block">e.g. 0.85 = 85% outbound pass-through ratio</span>
             </div>
 
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Pass-Through Window (Minutes)</label>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Pass-Through Window (Minutes)
+              </label>
               <input
                 type="number"
                 min="5"
                 max="1440"
                 value={settings.pass_through_window_minutes}
                 onChange={(e) => setSettings({ ...settings, pass_through_window_minutes: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
             </div>
 
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Velocity Burst Transfer Count</label>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Velocity Burst Transfer Count
+              </label>
               <input
                 type="number"
                 min="2"
                 max="50"
                 value={settings.velocity_burst_count}
                 onChange={(e) => setSettings({ ...settings, velocity_burst_count: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
             </div>
 
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Velocity Burst Window (Minutes)</label>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Velocity Burst Window (Minutes)
+              </label>
               <input
                 type="number"
                 min="5"
                 max="180"
                 value={settings.velocity_burst_window_minutes}
                 onChange={(e) => setSettings({ ...settings, velocity_burst_window_minutes: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
             </div>
           </div>
         </div>
 
         {/* Traversal Budgets Configuration */}
-        <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple space-y-4">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
-            <Cpu className="w-4 h-4 text-indigo-500" />
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Lineage Traversal Budgets</h3>
+        <div className="bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-6 space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-900 dark:border-neutral-100">
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] uppercase tracking-widest text-swiss-red font-bold">06.2 //</span>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 dark:text-white">
+                Lineage Traversal Budgets
+              </h2>
+            </div>
+            <span className="text-[9px] text-neutral-400 uppercase">DFS / BFS BOUNDARIES</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Backward Lookback Window (Hours)</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Backward Lookback Window (Hours)
+              </label>
               <input
                 type="number"
                 min="1"
                 max="720"
                 value={settings.lookback_hours}
                 onChange={(e) => setSettings({ ...settings, lookback_hours: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
             </div>
 
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Forward Lookahead Window (Hours)</label>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Forward Lookahead Window (Hours)
+              </label>
               <input
                 type="number"
                 min="1"
                 max="720"
                 value={settings.lookahead_hours}
                 onChange={(e) => setSettings({ ...settings, lookahead_hours: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
             </div>
 
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Maximum Hop Depth Budget</label>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Maximum Hop Depth Budget
+              </label>
               <input
                 type="number"
                 min="1"
                 max="50"
                 value={settings.max_hops}
                 onChange={(e) => setSettings({ ...settings, max_hops: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
             </div>
 
-            <div>
-              <label className="block text-slate-700 dark:text-slate-300 font-medium mb-1">Maximum Discovered Nodes Budget</label>
+            <div className="space-y-1.5">
+              <label className="block text-[10px] uppercase tracking-wider font-bold text-neutral-700 dark:text-neutral-300">
+                Maximum Discovered Nodes Budget
+              </label>
               <input
                 type="number"
                 min="10"
                 max="500"
                 value={settings.max_nodes}
                 onChange={(e) => setSettings({ ...settings, max_nodes: Number(e.target.value) })}
-                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]"
+                className="w-full bg-neutral-50 dark:bg-neutral-900 border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-neutral-900 dark:text-neutral-100 font-bold focus:outline-none focus:border-neutral-900"
               />
             </div>
           </div>
         </div>
 
         {/* Save Changes Button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2">
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex items-center space-x-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-medium px-6 py-2.5 rounded-lg text-xs shadow-sm transition-colors disabled:opacity-50"
+            className="bg-swiss-red hover:bg-swiss-redHover text-white font-mono font-bold px-6 py-3 text-xs uppercase tracking-wider flex items-center space-x-2 transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? 'Saving...' : 'Save Configuration Changes'}</span>
+            <span>{saving ? 'SAVING CONFIGURATION...' : 'SAVE CONFIGURATION AUDIT'}</span>
           </button>
         </div>
       </form>
     </div>
   );
 };
+

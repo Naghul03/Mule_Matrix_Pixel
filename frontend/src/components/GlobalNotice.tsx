@@ -1,18 +1,28 @@
 import React from 'react';
-import { ShieldCheck, Database } from 'lucide-react';
+import { Database, ShieldCheck } from 'lucide-react';
 
 export const GlobalNotice: React.FC = () => {
   return (
-    <aside aria-label="Simulation Environment Banner" className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800/80 px-4 py-1.5 text-xs text-slate-600 dark:text-slate-400 flex flex-wrap items-center justify-between transition-colors">
+    <aside aria-label="System Environment Header" className="bg-white dark:bg-[#0C0D0E] border-b border-black/10 dark:border-white/10 px-4 sm:px-6 lg:px-8 py-1.5 text-[11px] font-mono text-neutral-600 dark:text-neutral-400 flex flex-wrap items-center justify-between transition-colors">
       <div className="flex items-center space-x-2">
-        <span className="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span className="font-semibold text-slate-800 dark:text-slate-200">Synthetic Environment</span>
-        <span className="text-slate-300 dark:text-slate-700">|</span>
-        <span className="text-slate-600 dark:text-slate-400">All banks, payment rails, accounts, and transactions are simulated. No live financial data is accessed.</span>
+        <span className="w-1.5 h-1.5 bg-[#E30613] inline-block"></span>
+        <span className="font-bold text-neutral-900 dark:text-white uppercase tracking-wider text-[10px]">
+          SYS // SYNTHETIC FINANCIAL LEDGER
+        </span>
+        <span className="text-neutral-300 dark:text-neutral-700">|</span>
+        <span className="text-neutral-500 dark:text-neutral-400 truncate max-w-xl">
+          Simulated cross-bank network (8 institutions, 100 accounts). Zero real customer PII accessed.
+        </span>
       </div>
-      <div className="hidden sm:flex items-center space-x-4 text-[11px] text-slate-500 dark:text-slate-400">
-        <span className="flex items-center gap-1.5"><Database className="w-3 h-3 text-slate-400 dark:text-slate-500" /> Multi-Bank Synthetic Ledger</span>
-        <span className="flex items-center gap-1.5"><ShieldCheck className="w-3 h-3 text-slate-400 dark:text-slate-500" /> Deterministic Rules Active</span>
+      <div className="hidden md:flex items-center space-x-4 text-[10px] tracking-wider text-neutral-500 uppercase">
+        <span className="flex items-center gap-1">
+          <Database className="w-3 h-3 text-[#E30613]" />
+          <span>LEDGER: DUAL-ENTRY</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <ShieldCheck className="w-3 h-3 text-neutral-400" />
+          <span>RULES: V2_CANDIDATE</span>
+        </span>
       </div>
     </aside>
   );

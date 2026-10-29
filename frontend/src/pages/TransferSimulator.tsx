@@ -11,9 +11,7 @@ import {
   Layers,
   ArrowRightLeft,
   ChevronRight,
-  Info,
-  Clock,
-  Sparkles
+  Info
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { Account, Transaction, ScenarioMeta, DetectionAlert } from '../types/api';
@@ -195,10 +193,8 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
       setLiveSteps(steps);
 
       if (steps.length > 0) {
-        // Step 1 active immediately
         setActiveStep(1);
 
-        // Subsequent steps with realistic ~1.2s delay per transfer
         for (let s = 2; s <= steps.length; s++) {
           await new Promise(r => setTimeout(r, 1200));
           setActiveStep(s);
@@ -226,59 +222,63 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
   const activeScenarioMeta = scenarios.find(s => s.id === selectedScenario);
 
   const topScenarios = [
-    { id: 'scenario_cross_bank_matrix', label: 'Cross-Bank Matrix (5 Hops)' },
-    { id: 'scenario_simple_mule_chain', label: 'Simple 3-Hop Mule Chain' },
-    { id: 'scenario_commission_retention', label: 'Commission Retention' },
-    { id: 'scenario_split_flow', label: 'Rapid Split Flow' },
-    { id: 'scenario_merge_flow', label: 'Funnel Merge Aggregation' },
-    { id: 'scenario_fan_in_fan_out', label: 'Fan-In / Fan-Out' },
-    { id: 'scenario_circular_cycle', label: 'Circular Loop' },
-    { id: 'scenario_legit_payroll', label: 'Corporate Payroll (Clean)' }
+    { id: 'scenario_cross_bank_matrix', index: '01', label: 'Cross-Bank Matrix (5 Hops)' },
+    { id: 'scenario_simple_mule_chain', index: '02', label: 'Simple 3-Hop Mule Chain' },
+    { id: 'scenario_commission_retention', index: '03', label: 'Commission Retention' },
+    { id: 'scenario_split_flow', index: '04', label: 'Rapid Split Flow' },
+    { id: 'scenario_merge_flow', index: '05', label: 'Funnel Merge Aggregation' },
+    { id: 'scenario_fan_in_fan_out', index: '06', label: 'Fan-In / Fan-Out' },
+    { id: 'scenario_circular_cycle', index: '07', label: 'Circular Loop' },
+    { id: 'scenario_legit_payroll', index: '08', label: 'Corporate Payroll (Clean)' }
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900">
-              Transaction Engine
-            </span>
-            <span className="text-xs text-slate-400">• Multi-Institution Simulation</span>
+    <div className="space-y-8">
+      {/* 01 / HEADER — Swiss International Typographic Header */}
+      <section className="border-b-2 border-neutral-900 dark:border-neutral-700 pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest uppercase text-neutral-500">
+              <span className="w-2 h-2 bg-[#E30613] inline-block" />
+              <span className="font-bold text-neutral-900 dark:text-white">02 // SIMULATION ENGINE</span>
+              <span>•</span>
+              <span>20 DETERMINISTIC SCENARIO TYPOLOGIES</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-neutral-900 dark:text-white leading-[0.95]">
+              Inter-Bank Transfer Simulator.
+            </h1>
+
+            <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 font-normal max-w-2xl">
+              Dispatch structured multi-hop fund movements across synthetic member banks, monitor real-time token splits, and observe deterministic rule triggers.
+            </p>
           </div>
-          <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white mt-1">
-            Transfer Simulator & Scenario Engine
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Step through 20 deterministic scenario typologies with real-time transfer pacing and programmable e-Rupee token tracking.
-          </p>
-        </div>
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setShowManualForm(!showManualForm)}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-[#0f172a] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-          >
-            <ArrowRightLeft className="w-3.5 h-3.5 text-slate-500" />
-            <span>{showManualForm ? 'Hide Manual Transfer' : 'Manual Transfer Form'}</span>
-          </button>
+          <div>
+            <button
+              onClick={() => setShowManualForm(!showManualForm)}
+              className="inline-flex items-center space-x-1.5 px-4 py-2 border-2 border-neutral-900 dark:border-neutral-700 text-xs font-mono font-bold uppercase tracking-wider text-neutral-900 dark:text-white bg-white dark:bg-[#151619] hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+            >
+              <ArrowRightLeft className="w-3.5 h-3.5 text-[#E30613]" />
+              <span>{showManualForm ? 'Hide Manual Form' : 'Manual Settlement Form'}</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Scenario Launcher Card */}
-      <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-              Select Scenario Typology (20 Deterministic Catalogues)
+      {/* 02 / SCENARIO SELECTOR — Swiss Modular Grid */}
+      <section className="bg-white dark:bg-[#151619] border-2 border-neutral-900 dark:border-neutral-700 p-6 space-y-5">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-5 border-b border-neutral-200 dark:border-neutral-800">
+          <div className="space-y-1.5 flex-1 max-w-xl">
+            <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest block">
+              CATALOG SELECTION // 20 SCENARIOS
             </span>
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <select
                 value={selectedScenario}
                 onChange={(e) => setSelectedScenario(e.target.value)}
                 disabled={isScenarioRunning}
-                className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-medium text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-md"
+                className="bg-neutral-50 dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-700 px-3 py-2 text-xs font-mono font-bold text-neutral-900 dark:text-white focus:outline-none focus:border-[#E30613] w-full"
               >
                 {scenarios.map(s => (
                   <option key={s.id} value={s.id}>
@@ -290,7 +290,7 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
               <button
                 onClick={() => handleRunScenario()}
                 disabled={isScenarioRunning}
-                className="inline-flex items-center space-x-2 bg-[#1a73e8] hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-lg text-xs transition-colors shadow-sm disabled:opacity-50 flex-shrink-0"
+                className="inline-flex items-center justify-center space-x-2 bg-[#E30613] hover:bg-[#C20510] text-white font-bold uppercase tracking-wider px-6 py-2.5 text-xs transition-colors disabled:opacity-50 flex-shrink-0"
               >
                 <Play className="w-3.5 h-3.5 fill-current" />
                 <span>
@@ -303,25 +303,23 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
           </div>
 
           {activeScenarioMeta && (
-            <div className="lg:max-w-md bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs text-slate-600 dark:text-slate-400">
-              <div className="font-medium text-slate-900 dark:text-white mb-0.5">
+            <div className="lg:max-w-md bg-neutral-50 dark:bg-neutral-900/60 border border-neutral-300 dark:border-neutral-700 p-3.5 text-xs font-mono text-neutral-600 dark:text-neutral-400">
+              <div className="font-bold text-neutral-900 dark:text-white uppercase mb-1">
                 {activeScenarioMeta.name}
               </div>
-              <div className="text-[11px] leading-relaxed line-clamp-2">
+              <div className="text-[11px] font-sans leading-relaxed line-clamp-2">
                 {activeScenarioMeta.description}
               </div>
             </div>
           )}
         </div>
 
-        {/* Quick Scenario Buttons */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
-          <div className="flex items-center space-x-2 mb-2">
-            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-              Quick Scenarios:
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
+        {/* Quick Typology Buttons (Modular numbered chips) */}
+        <div>
+          <span className="text-[10px] font-mono font-bold text-neutral-400 uppercase tracking-widest block mb-2">
+            RAPID DISPATCH TYPOLOGIES:
+          </span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
             {topScenarios.map(sc => (
               <button
                 key={sc.id}
@@ -330,40 +328,50 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
                   handleRunScenario(sc.id);
                 }}
                 disabled={isScenarioRunning}
-                className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors ${
+                className={`p-2 border text-left transition-all ${
                   selectedScenario === sc.id
-                    ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300'
-                    : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 border-neutral-900 dark:border-white'
+                    : 'bg-white dark:bg-[#151619] border-neutral-300 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:border-neutral-900 dark:hover:border-neutral-400'
                 } disabled:opacity-50`}
               >
-                {sc.label}
+                <div className="text-[9px] font-mono text-[#E30613] font-bold">
+                  {sc.index}
+                </div>
+                <div className="text-[11px] font-bold uppercase tracking-tight truncate mt-0.5">
+                  {sc.label}
+                </div>
               </button>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Manual Transfer Form (Expandable) */}
+      {/* 03 / MANUAL FORM (Expandable Swiss Grid) */}
       {showManualForm && (
-        <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-              Submit Manual Settlement Transfer
-            </h3>
-            <span className="text-[10px] text-slate-400 font-mono">Isolated Synthetic Ledger</span>
+        <section className="bg-white dark:bg-[#151619] border-2 border-neutral-900 dark:border-neutral-700 p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
+            <div>
+              <span className="text-[10px] font-mono font-bold text-[#E30613] uppercase tracking-wider block">
+                DIRECT SETTLEMENT // LEDGER INJECTION
+              </span>
+              <h3 className="text-sm font-black uppercase text-neutral-900 dark:text-white mt-0.5">
+                Submit Isolated Transfer
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono text-neutral-400 uppercase">Dual-Entry Ledger</span>
           </div>
 
           <form onSubmit={handlePostTransfer} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Source Account */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-[11px] font-mono font-bold uppercase text-neutral-700 dark:text-neutral-300 mb-1">
                   Source Account
                 </label>
                 <select
                   value={sourceId}
                   onChange={(e) => setSourceId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                  className="w-full bg-neutral-50 dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-700 px-3 py-2 text-xs font-mono font-bold text-neutral-900 dark:text-white focus:outline-none"
                 >
                   {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>
@@ -372,23 +380,23 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
                   ))}
                 </select>
                 {selectedSrcAcc && (
-                  <div className="mt-1 flex items-center space-x-2 text-[11px] text-slate-500">
+                  <div className="mt-1 flex items-center space-x-2 text-[10px] font-mono text-neutral-500">
                     <span>{selectedSrcAcc.bank_name || selectedSrcAcc.bank_code}</span>
                     <span>•</span>
-                    <span className="font-mono">Balance: ₹{(selectedSrcAcc.balance_minor / 100).toLocaleString()}</span>
+                    <span>Balance: ₹{(selectedSrcAcc.balance_minor / 100).toLocaleString()}</span>
                   </div>
                 )}
               </div>
 
               {/* Destination Account */}
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-[11px] font-mono font-bold uppercase text-neutral-700 dark:text-neutral-300 mb-1">
                   Destination Account
                 </label>
                 <select
                   value={destinationId}
                   onChange={(e) => setDestinationId(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                  className="w-full bg-neutral-50 dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-700 px-3 py-2 text-xs font-mono font-bold text-neutral-900 dark:text-white focus:outline-none"
                 >
                   {accounts.map(acc => (
                     <option key={acc.id} value={acc.id}>
@@ -397,12 +405,12 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
                   ))}
                 </select>
                 {selectedDstAcc && (
-                  <div className="mt-1 flex items-center space-x-2 text-[11px] text-slate-500">
+                  <div className="mt-1 flex items-center space-x-2 text-[10px] font-mono text-neutral-500">
                     <span>{selectedDstAcc.bank_name || selectedDstAcc.bank_code}</span>
                     <span>•</span>
-                    <span className="font-mono">Balance: ₹{(selectedDstAcc.balance_minor / 100).toLocaleString()}</span>
+                    <span>Balance: ₹{(selectedDstAcc.balance_minor / 100).toLocaleString()}</span>
                     {selectedSrcAcc && selectedSrcAcc.bank_id !== selectedDstAcc.bank_id && (
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">• Cross-Bank Transfer</span>
+                      <span className="text-[#E30613] font-bold uppercase">• Cross-Bank</span>
                     )}
                   </div>
                 )}
@@ -411,7 +419,7 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-[11px] font-mono font-bold uppercase text-neutral-700 dark:text-neutral-300 mb-1">
                   Amount (INR)
                 </label>
                 <input
@@ -419,74 +427,74 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
                   min="1"
                   value={amountInr}
                   onChange={(e) => setAmountInr(Number(e.target.value))}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                  className="w-full bg-neutral-50 dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-700 px-3 py-2 text-xs font-mono font-bold text-neutral-900 dark:text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-[11px] font-mono font-bold uppercase text-neutral-700 dark:text-neutral-300 mb-1">
                   Payment Rail
                 </label>
                 <select
                   value={rail}
                   onChange={(e) => setRail(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-neutral-50 dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-700 px-3 py-2 text-xs font-mono font-bold text-neutral-900 dark:text-white focus:outline-none"
                 >
-                  <option value="IMPS">IMPS</option>
-                  <option value="UPI">UPI</option>
-                  <option value="NEFT">NEFT</option>
-                  <option value="RTGS">RTGS</option>
-                  <option value="CBDC_SIM">e₹ CBDC</option>
+                  <option value="IMPS">IMPS (Immediate)</option>
+                  <option value="UPI">UPI (Fast Rail)</option>
+                  <option value="NEFT">NEFT (Batch)</option>
+                  <option value="RTGS">RTGS (High Value)</option>
+                  <option value="CBDC_SIM">e₹ CBDC (Tokenized)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-[11px] font-mono font-bold uppercase text-neutral-700 dark:text-neutral-300 mb-1">
                   Memo
                 </label>
                 <input
                   type="text"
                   value={memo}
                   onChange={(e) => setMemo(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-3 py-2 text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full bg-neutral-50 dark:bg-neutral-900 border-2 border-neutral-900 dark:border-neutral-700 px-3 py-2 text-xs font-mono text-neutral-900 dark:text-white focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end">
+            <div className="flex items-center justify-end pt-2">
               <button
                 type="submit"
                 disabled={submitting || sourceId === destinationId}
-                className="bg-[#1a73e8] hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md text-xs shadow-sm transition-colors flex items-center space-x-1.5 disabled:opacity-50"
+                className="bg-[#E30613] hover:bg-[#C20510] text-white font-bold uppercase tracking-wider px-5 py-2.5 text-xs transition-colors flex items-center space-x-2 disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{submitting ? 'Posting Transfer...' : 'Post Manual Transfer'}</span>
+                <span>{submitting ? 'Posting...' : 'Post Manual Transfer'}</span>
               </button>
             </div>
           </form>
-        </div>
+        </section>
       )}
 
-      {/* Real-Time Multi-Bank Transaction Stepper (Exact Visualizer from Overview & Demo) */}
-      <div className="bg-white dark:bg-[#0f172a] border border-blue-300 dark:border-blue-900/80 rounded-xl p-5 shadow-apple space-y-4">
+      {/* 04 / REAL-TIME TRANSACTION STEPPER — Swiss International Multi-Bank Visualizer */}
+      <section className="bg-white dark:bg-[#151619] border-2 border-neutral-900 dark:border-neutral-700 p-6 space-y-4">
         {/* Stepper Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3.5 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3.5 border-b border-neutral-200 dark:border-neutral-800">
           <div>
             <div className="flex items-center space-x-2">
               {isScenarioRunning && (
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse inline-block" />
+                <span className="w-2.5 h-2.5 bg-[#E30613] animate-pulse inline-block" />
               )}
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-black uppercase tracking-wider text-neutral-900 dark:text-white">
                 {isScenarioRunning
-                  ? `Executing Live ${activeScenarioMeta?.name || 'Scenario'} Simulation (Real-Time Transfer Stepper)`
+                  ? `Executing Live ${activeScenarioMeta?.name || 'Scenario'} Simulation`
                   : liveSteps.length > 0
                   ? `Simulation Complete: ${scenarioRunSummary?.scenarioName || 'Audited Network'}`
                   : 'Real-Time Multi-Bank Transaction Stepper'}
               </h3>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-neutral-500 font-mono mt-0.5">
               {isScenarioRunning
-                ? `Simulating ${liveSteps.length} sequential inter-bank transfers with RBI-compliant programmable e-Rupee token tracking (1.2s per transfer).`
+                ? `Simulating ${liveSteps.length} sequential inter-bank transfers with RBI-compliant programmable e-Rupee token tracking (~1.2s delay).`
                 : liveSteps.length > 0
                 ? `Successfully audited ${liveSteps.length} sequential transfers across synthetic banking network.`
                 : 'Select any scenario from the catalog above and click Run Scenario to watch live sequential transfers.'}
@@ -495,15 +503,15 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
 
           {liveSteps.length > 0 && (
             <div className="flex items-center space-x-3">
-              <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-                Transfer {activeStep} of {liveSteps.length}
+              <span className="text-xs font-mono font-bold text-[#E30613]">
+                TRANSFER {activeStep} OF {liveSteps.length}
               </span>
               {onNavigateTab && (
                 <button
                   onClick={() => onNavigateTab('investigation', {
                     root_account_id: scenarioRunSummary?.rootAccountId
                   })}
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium whitespace-nowrap"
+                  className="text-xs font-bold text-neutral-900 dark:text-white hover:text-[#E30613] underline font-mono uppercase whitespace-nowrap"
                 >
                   {isScenarioRunning ? 'Skip to Investigation ➔' : 'Investigate Reconstructed Lineage ➔'}
                 </button>
@@ -514,9 +522,9 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
 
         {/* Stepper Progress Bar */}
         {liveSteps.length > 0 && (
-          <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+          <div className="w-full bg-neutral-100 dark:bg-neutral-800 h-1 overflow-hidden">
             <div
-              className="bg-[#1a73e8] h-full transition-all duration-500"
+              className="bg-[#E30613] h-full transition-all duration-500"
               style={{
                 width: `${(activeStep / Math.max(1, liveSteps.length)) * 100}%`
               }}
@@ -527,20 +535,20 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
         {/* Stepper Card Grid Content */}
         {liveSteps.length === 0 ? (
           <div className="py-16 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 flex items-center justify-center mx-auto text-[#1a73e8]">
-              <ArrowRightLeft className="w-5 h-5" />
+            <div className="w-10 h-10 bg-neutral-100 dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 flex items-center justify-center mx-auto text-neutral-900 dark:text-white font-mono font-bold">
+              ⇄
             </div>
-            <div className="max-w-md mx-auto text-xs text-slate-500 space-y-1.5">
-              <p className="font-semibold text-slate-800 dark:text-slate-200">
+            <div className="max-w-md mx-auto text-xs text-neutral-500 font-mono space-y-1.5">
+              <p className="font-bold text-neutral-900 dark:text-white uppercase">
                 Ready to Simulate Cross-Bank Movements
               </p>
               <p className="leading-relaxed">
-                Choose any scenario (such as Cross-Bank Matrix, Rapid Split Flow, or Commission Retention) and click <strong>Run Scenario</strong>. Each transfer will step sequentially in real time (~1.2s delay) with live e-Rupee token splitting and mule alerts.
+                Choose any scenario (such as Cross-Bank Matrix, Rapid Split Flow, or Commission Retention) and click <strong>Run Scenario</strong>. Each transfer will step sequentially in real time with live e-Rupee token splitting and mule alerts.
               </p>
             </div>
             <button
               onClick={() => handleRunScenario('scenario_cross_bank_matrix')}
-              className="inline-flex items-center space-x-2 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-900 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              className="inline-flex items-center space-x-2 bg-neutral-900 dark:bg-white text-white dark:text-neutral-900 font-bold uppercase tracking-wider px-4 py-2 text-xs transition-colors"
             >
               <Play className="w-3 h-3 fill-current" />
               <span>Launch Cross-Bank Matrix Showcase</span>
@@ -556,63 +564,63 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
               return (
                 <div
                   key={tx.step}
-                  className={`p-3.5 rounded-lg border text-xs flex flex-col justify-between transition-all ${
+                  className={`p-3.5 border text-xs flex flex-col justify-between transition-all ${
                     isCurrent
-                      ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-400 dark:border-blue-700 shadow-sm ring-1 ring-blue-400/40'
+                      ? 'bg-neutral-50 dark:bg-neutral-900 border-[#E30613] shadow-sm'
                       : isPast
-                      ? 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 opacity-90'
-                      : 'bg-white dark:bg-slate-900/30 border-slate-200 dark:border-slate-800 opacity-40'
+                      ? 'bg-white dark:bg-[#151619] border-neutral-300 dark:border-neutral-700'
+                      : 'bg-neutral-50/50 dark:bg-neutral-900/30 border-neutral-200 dark:border-neutral-800 opacity-40'
                   }`}
                 >
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] font-semibold text-slate-500">
-                        HOP {tx.step}
+                      <span className="font-mono text-[10px] font-bold text-neutral-500">
+                        HOP 0{tx.step}
                       </span>
                       {isCurrent && (
-                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium animate-pulse">
+                        <span className="text-[10px] font-bold text-[#E30613] animate-pulse uppercase">
                           Active...
                         </span>
                       )}
                       {isPast && (
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                        <span className="text-[10px] font-bold text-emerald-600 uppercase">
                           Settled ✓
                         </span>
                       )}
                       {isUpcoming && (
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-neutral-400 font-mono">
                           Pending
                         </span>
                       )}
                     </div>
 
-                    <div className="font-mono font-medium text-slate-900 dark:text-white text-[11px] leading-tight">
-                      <div>{tx.sourceRef} <span className="text-slate-400">({tx.sourceBank})</span></div>
-                      <div className="text-slate-400 text-[10px]">➔ {tx.destRef} ({tx.destBank})</div>
+                    <div className="font-mono font-bold text-neutral-900 dark:text-white text-[11px] leading-tight">
+                      <div>{tx.sourceRef} <span className="text-neutral-400">({tx.sourceBank})</span></div>
+                      <div className="text-neutral-400 text-[10px]">➔ {tx.destRef} ({tx.destBank})</div>
                     </div>
 
-                    <div className="font-mono font-bold text-sm text-slate-900 dark:text-white tabular-nums">
+                    <div className="font-mono font-bold text-sm text-neutral-900 dark:text-white tabular-nums">
                       {tx.amountFormatted}
                     </div>
-                    <div className="text-[10px] text-slate-500">via {tx.rail}</div>
+                    <div className="text-[10px] text-neutral-500 font-mono">rail: {tx.rail}</div>
                   </div>
 
-                  <div className="mt-3 pt-2 border-t border-slate-200 dark:border-slate-800/80 space-y-1">
-                    <div className="text-[10px] font-mono text-slate-500 truncate" title={tx.tokenAllocation}>
+                  <div className="mt-3 pt-2 border-t border-neutral-200 dark:border-neutral-800 space-y-1">
+                    <div className="text-[10px] font-mono text-neutral-500 truncate" title={tx.tokenAllocation}>
                       {tx.tokenAllocation}
                     </div>
 
                     {tx.isMuleFlagged ? (
-                      <div className="inline-flex items-center space-x-1 text-[10px] font-semibold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/50 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-900">
+                      <div className="inline-flex items-center space-x-1 text-[9px] font-bold text-white bg-[#E30613] px-1.5 py-0.5">
                         <span>🚨 MULE FLAGGED</span>
                         {tx.ruleCode && <span className="font-normal font-mono truncate max-w-[100px]">({tx.ruleCode})</span>}
                       </div>
                     ) : tx.isOffRamp ? (
-                      <div className="inline-flex items-center space-x-1 text-[10px] font-semibold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-950/80 px-1.5 py-0.5 rounded border border-red-300">
+                      <div className="inline-flex items-center space-x-1 text-[9px] font-bold text-neutral-900 dark:text-white bg-neutral-200 dark:bg-neutral-800 px-1.5 py-0.5">
                         <span>🎯 OFF-RAMP</span>
                       </div>
                     ) : (
-                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      <div className="text-[10px] text-emerald-600 font-mono font-bold uppercase">
                         Normal Settled
                       </div>
                     )}
@@ -624,9 +632,9 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
         )}
 
         {/* Stepper Footer & Direct Investigation Action */}
-        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 border-t border-slate-200 dark:border-slate-800">
-          <div className="flex items-center space-x-1.5 text-[11px]">
-            <Shield className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+        <div className="pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-neutral-500 font-mono border-t border-neutral-200 dark:border-neutral-800">
+          <div className="flex items-center space-x-1.5 text-[10px] uppercase">
+            <Shield className="w-3.5 h-3.5 text-[#E30613] flex-shrink-0" />
             <span>🔒 RBI Data Privacy: Lineage audited strictly via programmable e-Rupee token metadata without customer PII leakage.</span>
           </div>
 
@@ -635,14 +643,14 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
               onClick={() => onNavigateTab('investigation', {
                 root_account_id: scenarioRunSummary.rootAccountId
               })}
-              className="inline-flex items-center space-x-1.5 bg-[#1a73e8] hover:bg-blue-700 text-white font-medium px-4 py-1.5 rounded-lg text-xs shadow-sm transition-colors whitespace-nowrap self-start sm:self-auto"
+              className="inline-flex items-center space-x-1.5 bg-[#E30613] hover:bg-[#C20510] text-white font-bold uppercase tracking-wider px-4 py-2 text-xs transition-colors self-start sm:self-auto"
             >
               <span>Investigate Reconstructed Lineage</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 };

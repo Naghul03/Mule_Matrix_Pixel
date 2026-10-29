@@ -57,11 +57,11 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#090d16] text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-150">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0C0D0E] text-[#111111] dark:text-[#F4F4F4] flex flex-col font-sans transition-colors duration-150">
       {/* Top Global Notice Strip */}
       <GlobalNotice />
 
-      {/* Main Apple/Google Style Top Navbar */}
+      {/* Main Swiss Top Navbar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={(t) => {
@@ -74,7 +74,7 @@ const AppContent: React.FC = () => {
       />
 
       {/* Main Page Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'overview' && <Overview onNavigateTab={handleNavigateTab} />}
         {activeTab === 'simulator' && <TransferSimulator onNavigateTab={handleNavigateTab} />}
         {activeTab === 'alerts' && <Alerts onNavigateTab={handleNavigateTab} />}
@@ -83,16 +83,19 @@ const AppContent: React.FC = () => {
         {activeTab === 'settings' && <Settings />}
       </main>
 
-      {/* Clean Minimalist Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] py-3.5 text-xs text-slate-500 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2">
+      {/* Swiss Editorial Colophon Footer */}
+      <footer className="border-t-2 border-neutral-900 dark:border-neutral-700 bg-white dark:bg-[#0C0D0E] py-4 text-xs transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-neutral-500 font-mono text-[11px]">
           <div className="flex items-center space-x-2">
-            <span className="font-semibold text-slate-800 dark:text-slate-200">Mule Matrix</span>
-            <span>•</span>
-            <span>Explainable Mule Detection & Cross-Bank Lineage</span>
+            <span className="w-2 h-2 bg-[#E30613] inline-block"></span>
+            <span className="font-bold text-neutral-900 dark:text-white uppercase tracking-wider">
+              Mule Matrix
+            </span>
+            <span>//</span>
+            <span>SWISS INTERNATIONAL FINANCIAL FORENSICS</span>
           </div>
-          <div className="text-[11px] text-slate-400">
-            Compliant with MVP Architecture Specification
+          <div className="text-[10px] tracking-wider uppercase text-neutral-400">
+            RASTER // 08-COL MODULAR • ZERO-PII PROGRAMMABLE e-RUPEE AUDIT
           </div>
         </div>
       </footer>

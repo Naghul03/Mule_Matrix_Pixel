@@ -2,9 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Download,
   RotateCcw,
-  AlertCircle,
   FileText,
-  Maximize2
+  Maximize2,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  ChevronLeft,
+  ChevronRight,
+  ShieldAlert,
+  ArrowRight
 } from 'lucide-react';
 import cytoscape from 'cytoscape';
 import { api } from '../lib/api';
@@ -90,7 +97,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
     }
   };
 
-  // Sequential Lineage Traversal Player State (Ordered chronologically by fund transfer time)
+  // Sequential Lineage Traversal Player State (Ordered chronologically)
   const sortedEdges = React.useMemo(() => {
     if (!investigation?.edges) return [];
     return [...investigation.edges].sort((a, b) => {
@@ -118,11 +125,10 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
     return () => clearTimeout(timer);
   }, [isPlaying, currentHop, totalHops]);
 
-  // Cytoscape rendering with sequential reveal and 30 nodes cap
+  // Cytoscape rendering with Swiss styling and sequential reveal
   useEffect(() => {
     if (!graphContainerRef.current || !investigation) return;
 
-    // Filter edges up to the active playback hop
     let activeEdges = sortedEdges.slice(0, currentHop);
 
     if (viewMode === 'BACKWARD') {
@@ -131,14 +137,12 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
       activeEdges = activeEdges.filter(e => e.direction === 'FORWARD');
     }
 
-    // Determine involved accounts
     const activeAccountIds = new Set<string>([investigation.root_account_id]);
     activeEdges.forEach(e => {
       activeAccountIds.add(e.source_account_id);
       activeAccountIds.add(e.destination_account_id);
     });
 
-    // Cap at 30 accounts for clean, uncluttered presentation
     let visibleNodes = investigation.nodes.filter(n => activeAccountIds.has(n.account_id)).slice(0, 30);
 
     const isDark = theme === 'dark';
@@ -146,28 +150,34 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
 
     // Nodes
     visibleNodes.forEach(node => {
-      let bgColor = isDark ? '#1e293b' : '#f8fafc';
-      let borderColor = isDark ? '#475569' : '#cbd5e1';
-      let size = 42;
+      let bgColor = isDark ? '#1C1D21' : '#FFFFFF';
+      let borderColor = isDark ? '#4A4D57' : '#111111';
+      let textColor = isDark ? '#FFFFFF' : '#111111';
+      let size = 46;
 
       if (node.direction === 'ROOT') {
-        bgColor = '#dc2626';
-        borderColor = '#ef4444';
-        size = 50;
+        bgColor = '#E30613'; // Swiss vivid red
+        borderColor = '#FFFFFF';
+        textColor = '#FFFFFF';
+        size = 54;
       } else if (node.is_off_ramp) {
-        bgColor = '#b91c1c';
-        borderColor = '#f87171';
-        size = 46;
+        bgColor = '#8B0000';
+        borderColor = '#E30613';
+        textColor = '#FFFFFF';
+        size = 48;
       } else if (node.is_origin) {
-        bgColor = '#16a34a';
-        borderColor = '#4ade80';
-        size = 44;
+        bgColor = '#0F766E';
+        borderColor = '#14B8A6';
+        textColor = '#FFFFFF';
+        size = 48;
       } else if (node.direction === 'BACKWARD') {
-        bgColor = '#0d9488';
-        borderColor = '#2dd4bf';
+        bgColor = isDark ? '#1E293B' : '#F1F5F9';
+        borderColor = '#0284C7';
+        textColor = isDark ? '#FFFFFF' : '#0F172A';
       } else if (node.direction === 'FORWARD') {
-        bgColor = '#2563eb';
-        borderColor = '#60a5fa';
+        bgColor = isDark ? '#1E293B' : '#F1F5F9';
+        borderColor = '#475569';
+        textColor = isDark ? '#FFFFFF' : '#0F172A';
       }
 
       elements.push({
@@ -178,6 +188,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           raw: node,
           color: bgColor,
           borderColor,
+          textColor,
           size
         }
       });
@@ -214,9 +225,10 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
             'border-width': 2,
             'border-color': 'data(borderColor)',
             'label': 'data(label)',
-            'color': '#ffffff',
+            'color': 'data(textColor)',
             'font-size': '10px',
-            'font-family': 'Inter, sans-serif',
+            'font-family': 'Inter, Helvetica Neue, sans-serif',
+            'font-weight': 'bold',
             'text-valign': 'center',
             'text-halign': 'center',
             'text-wrap': 'wrap',
@@ -227,44 +239,49 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
         {
           selector: 'node:selected',
           style: {
-            'border-width': 3,
-            'border-color': '#1a73e8',
-            'width': 54,
-            'height': 54
+            'border-width': 4,
+            'border-color': '#E30613',
+            'width': 58,
+            'height': 58
           }
         },
         {
           selector: 'edge',
           style: {
             'width': 2,
-            'line-color': isDark ? '#475569' : '#cbd5e1',
-            'target-arrow-color': isDark ? '#475569' : '#cbd5e1',
+            'line-color': isDark ? '#3E414A' : '#A3A3A3',
+            'target-arrow-color': isDark ? '#3E414A' : '#A3A3A3',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
             'label': 'data(amount_formatted)',
-            'font-size': '9px',
-            'font-family': 'Inter, sans-serif',
-            'color': isDark ? '#cbd5e1' : '#334155',
-            'font-weight': '600',
-            'text-background-opacity': 0.9,
-            'text-background-color': isDark ? '#0f172a' : '#ffffff',
-            'text-background-padding': '2px',
-            'text-background-shape': 'roundrectangle'
-          }
+            'font-size': '10px',
+            'font-family': 'JetBrains Mono, monospace',
+            'color': isDark ? '#FFFFFF' : '#111111',
+            'font-weight': '700',
+            'text-background-opacity': 1,
+            'text-background-color': isDark ? '#151619' : '#FFFFFF',
+            'text-background-padding': '3px',
+            'text-background-shape': 'rectangle',
+            'text-border-color': isDark ? '#3E414A' : '#D4D4D4',
+            'text-border-width': 1,
+            'text-border-opacity': 1
+          } as any
         },
         {
           selector: 'edge[?isLatest]',
           style: {
-            'line-color': '#1a73e8',
-            'target-arrow-color': '#1a73e8',
-            'width': 3.5
-          }
+            'line-color': '#E30613',
+            'target-arrow-color': '#E30613',
+            'width': 3.5,
+            'text-border-color': '#E30613',
+            'color': '#E30613'
+          } as any
         },
         {
           selector: 'edge:selected',
           style: {
-            'line-color': '#1a73e8',
-            'target-arrow-color': '#1a73e8',
+            'line-color': '#E30613',
+            'target-arrow-color': '#E30613',
             'width': 3.5
           }
         }
@@ -296,153 +313,177 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
   const activeMovement = sortedEdges[currentHop - 1];
 
   return (
-    <div className="space-y-6">
-      {/* Header Case Dossier */}
-      <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+    <div className="space-y-8 animate-fadeIn">
+      {/* Swiss Case Dossier Header */}
+      <div className="border-b-2 border-neutral-900 dark:border-neutral-100 pb-5">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <div className="flex items-center space-x-2">
-              <span className="font-mono text-xs px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-semibold border border-blue-200 dark:border-blue-900">
-                CASE #{investigation?.id.slice(0, 8) || 'ACTIVE'}
-              </span>
-              <span className="text-xs text-slate-500">Target Account:</span>
-              <span className="font-mono text-xs font-semibold text-slate-900 dark:text-white">
-                {investigation?.root_account_ref} ({investigation?.root_bank_code})
-              </span>
+            <div className="flex items-center space-x-2 text-[11px] font-mono uppercase tracking-widest text-swiss-red font-bold">
+              <span>04 // FORENSIC LINEAGE</span>
+              <span className="text-neutral-400">—</span>
+              <span className="text-neutral-500">RECONSTRUCTED WORKSPACE</span>
             </div>
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-white mt-1">
-              Lineage Reconstruction Workspace
-            </h2>
+            <h1 className="text-3xl md:text-5xl font-black uppercase tracking-tight text-neutral-900 dark:text-neutral-100 mt-1">
+              Lineage Reconstruction.
+            </h1>
+            <div className="flex items-center space-x-3 text-xs font-mono text-neutral-500 dark:text-neutral-400 mt-1">
+              <span>DOSSIER: <strong className="text-neutral-900 dark:text-neutral-100">#{investigation?.id.slice(0, 8) || 'ACTIVE'}</strong></span>
+              <span>•</span>
+              <span>TRIGGER ACCOUNT: <strong className="text-swiss-red font-bold">{investigation?.root_account_ref}</strong> ({investigation?.root_bank_code})</span>
+            </div>
           </div>
 
-          {/* Action CTAs */}
-          <div className="flex items-center space-x-2">
+          {/* Action CTAs in Swiss Button Form */}
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => handleExport('html')}
-              className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs transition-colors shadow-subtle"
+              className="border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-neutral-900 text-neutral-800 dark:text-neutral-200 font-mono font-bold px-3 py-2 text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-colors"
             >
-              <Download className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Export HTML</span>
+              <Download className="w-3.5 h-3.5 text-swiss-red" />
+              <span>EXPORT HTML</span>
             </button>
             <button
               onClick={() => handleExport('json')}
-              className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700 text-xs transition-colors shadow-subtle"
+              className="border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 hover:border-neutral-900 text-neutral-800 dark:text-neutral-200 font-mono font-bold px-3 py-2 text-xs uppercase tracking-wider flex items-center space-x-1.5 transition-colors"
             >
-              <FileText className="w-3.5 h-3.5 text-slate-500" />
-              <span>Export JSON</span>
+              <FileText className="w-3.5 h-3.5 text-neutral-500" />
+              <span>EXPORT JSON</span>
             </button>
             <button
               onClick={handleRetrace}
               disabled={loading}
-              className="flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-1.5 rounded-md text-xs shadow-sm transition-colors disabled:opacity-50"
+              className="bg-swiss-red hover:bg-swiss-redHover text-white font-mono font-bold px-4 py-2 text-xs uppercase tracking-wider flex items-center space-x-2 transition-colors disabled:opacity-50"
             >
               <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              <span>Re-run Trace</span>
+              <span>RE-RUN TRACE</span>
             </button>
           </div>
         </div>
 
-        {/* Metric Cards Row */}
+        {/* Modular Metrics Grid (6 Cells) */}
         {investigation?.summary_metrics_json && (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 text-xs">
-            <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 block text-[10px] uppercase font-medium">Nodes Discovered</span>
-              <span className="font-mono text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-6">
+            <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
+                01 // NODES
+              </span>
+              <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.accounts_discovered}
               </span>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 block text-[10px] uppercase font-medium">Banks Crossed</span>
-              <span className="font-mono text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+
+            <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
+                02 // BANKS
+              </span>
+              <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.banks_crossed}
               </span>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 block text-[10px] uppercase font-medium">Traversed Movements</span>
-              <span className="font-mono text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
+
+            <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
+                03 // MOVEMENTS
+              </span>
+              <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.transactions_traversed}
               </span>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 block text-[10px] uppercase font-medium">Max Depth</span>
-              <span className="font-mono text-lg font-semibold text-slate-900 dark:text-white tabular-nums">
-                {investigation.summary_metrics_json.max_hop_depth} hops
+
+            <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
+                04 // MAX DEPTH
+              </span>
+              <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
+                {investigation.summary_metrics_json.max_hop_depth} <span className="text-xs font-normal text-neutral-400">HOPS</span>
               </span>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 block text-[10px] uppercase font-medium">Off-Ramps Found</span>
-              <span className="font-mono text-lg font-semibold text-red-600 dark:text-red-400 tabular-nums">
+
+            <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
+                05 // OFF-RAMPS
+              </span>
+              <span className="text-2xl font-black font-mono text-swiss-red tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.off_ramps_found}
               </span>
             </div>
-            <div className="bg-slate-50 dark:bg-slate-900 p-2.5 rounded-lg border border-slate-200 dark:border-slate-800">
-              <span className="text-slate-500 block text-[10px] uppercase font-medium">Avg Confidence</span>
-              <span className="font-mono text-lg font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">
+
+            <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
+                06 // CONFIDENCE
+              </span>
+              <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {Math.round(investigation.summary_metrics_json.avg_confidence * 100)}%
               </span>
             </div>
           </div>
         )}
 
-        {/* RBI Data Privacy & Programmable e-Rupee Token Info Banner */}
-        <div className="p-3 rounded-lg bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs text-blue-900 dark:text-blue-200">
-          <div className="flex items-center space-x-2.5">
-            <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 flex-shrink-0 animate-pulse" />
-            <span>
-              <strong>RBI-Compliant Data Privacy & Programmable e-Rupee Architecture:</strong>{' '}
-              Customer PII remains strictly isolated within each member bank. Multi-hop fund flows are audited via cryptographic programmable e-Rupee (CBDC / e₹) token allocations without exposing private bank account histories.
+        {/* Regulatory Architecture Sub-Deck */}
+        <div className="mt-4 p-3 border border-neutral-300 dark:border-neutral-700 bg-neutral-100 dark:bg-neutral-900/60 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs font-mono">
+          <div className="flex items-center space-x-2">
+            <span className="w-2 h-2 bg-swiss-red inline-block" />
+            <span className="text-neutral-700 dark:text-neutral-300">
+              <strong>REGULATORY PROTOCOL:</strong> Zero-PII CBDC / Programmable Token Allocation Engine. Inter-bank flows reconstructed without raw customer account ledger exposures.
             </span>
           </div>
-          <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 whitespace-nowrap self-start md:self-auto">
-            Zero-PII Token Tracking
+          <span className="text-[10px] font-bold border border-neutral-400 dark:border-neutral-600 px-2 py-0.5 uppercase tracking-wider text-neutral-600 dark:text-neutral-400 whitespace-nowrap">
+            SEC-72 AUDIT READY
           </span>
         </div>
       </div>
 
-      {/* Main Workspace Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Graph Canvas (3 Cols) */}
-        <div className="lg:col-span-3 bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex flex-col h-[560px] relative shadow-apple">
-          {/* Top Bar: View Mode Filter + Real-Time Flow Player Controls */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800 z-10">
-            <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-900 p-1 rounded-md">
+      {/* Main Workspace: Graph Canvas (8 Cols) + Inspector (4 Cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Graph Canvas Column */}
+        <div className="lg:col-span-8 bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-5 flex flex-col h-[620px] relative">
+          {/* Top Tape-Deck & Filter Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b-2 border-neutral-900 dark:border-neutral-100 z-10">
+            {/* View Mode Segmented Controls */}
+            <div className="flex border border-neutral-300 dark:border-neutral-700 text-xs font-mono">
               <button
                 onClick={() => setViewMode('COMBINED')}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                  viewMode === 'COMBINED' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+                className={`px-3 py-1.5 uppercase font-bold transition-colors ${
+                  viewMode === 'COMBINED'
+                    ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                    : 'bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                 }`}
               >
-                Combined Lineage
+                COMBINED
               </button>
               <button
                 onClick={() => setViewMode('BACKWARD')}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                  viewMode === 'BACKWARD' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+                className={`px-3 py-1.5 uppercase font-bold border-l border-neutral-300 dark:border-neutral-700 transition-colors ${
+                  viewMode === 'BACKWARD'
+                    ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                    : 'bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                 }`}
               >
-                Backward (Origins)
+                BACKWARD (ORIGIN)
               </button>
               <button
                 onClick={() => setViewMode('FORWARD')}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
-                  viewMode === 'FORWARD' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-600 dark:text-slate-400'
+                className={`px-3 py-1.5 uppercase font-bold border-l border-neutral-300 dark:border-neutral-700 transition-colors ${
+                  viewMode === 'FORWARD'
+                    ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900'
+                    : 'bg-transparent text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800'
                 }`}
               >
-                Forward (Off-Ramps)
+                FORWARD (SPLIT)
               </button>
             </div>
 
-            {/* Sequential Flow Animator Controls */}
-            <div className="flex items-center space-x-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1 text-xs">
+            {/* Tape-Deck Traversal Controls */}
+            <div className="flex items-center space-x-1.5 border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 p-1 text-xs font-mono">
               <button
                 onClick={() => {
                   setCurrentHop(1);
                   setIsPlaying(false);
                 }}
-                className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium"
+                className="px-2 py-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800"
                 title="Restart flow"
               >
-                Start
+                <SkipBack className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => {
@@ -450,16 +491,26 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
                   setCurrentHop(prev => Math.max(1, prev - 1));
                 }}
                 disabled={currentHop <= 1}
-                className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40"
-                title="Previous transfer"
+                className="px-2 py-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30"
+                title="Previous hop"
               >
-                Prev
+                <ChevronLeft className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="px-2.5 py-1 rounded bg-[#1a73e8] hover:bg-blue-700 text-white font-medium shadow-sm transition-colors"
+                className="px-3 py-1 bg-swiss-red hover:bg-swiss-redHover text-white font-bold flex items-center space-x-1 uppercase text-[10px] tracking-wider"
               >
-                {isPlaying ? 'Pause' : 'Play Flow'}
+                {isPlaying ? (
+                  <>
+                    <Pause className="w-3 h-3" />
+                    <span>PAUSE</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-3 h-3" />
+                    <span>PLAY</span>
+                  </>
+                )}
               </button>
               <button
                 onClick={() => {
@@ -467,247 +518,306 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
                   setCurrentHop(prev => Math.min(totalHops, prev + 1));
                 }}
                 disabled={currentHop >= totalHops}
-                className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 disabled:opacity-40"
-                title="Next transfer"
+                className="px-2 py-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 disabled:opacity-30"
+                title="Next hop"
               >
-                Next
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => {
                   setCurrentHop(totalHops);
                   setIsPlaying(false);
                 }}
-                className="px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium"
+                className="px-2 py-1 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-800 text-[10px] font-bold"
                 title="Reveal all"
               >
-                All ({totalHops})
+                ALL ({totalHops})
               </button>
-              <span className="font-mono text-[11px] px-2 py-0.5 bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold">
-                Hop {currentHop}/{totalHops}
+              <span className="font-mono text-[10px] px-2 py-0.5 bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 font-bold uppercase tracking-wider">
+                HOP {String(currentHop).padStart(2, '0')}/{String(totalHops).padStart(2, '0')}
               </span>
             </div>
 
             <button
               onClick={() => cyRef.current?.fit()}
-              className="p-1.5 rounded-md text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs flex items-center space-x-1"
+              className="p-1.5 border border-neutral-300 dark:border-neutral-700 text-neutral-600 dark:text-neutral-400 hover:border-neutral-900 hover:text-neutral-900 dark:hover:text-white transition-colors text-xs flex items-center space-x-1 font-mono uppercase font-bold"
               title="Fit to Canvas"
             >
               <Maximize2 className="w-3.5 h-3.5" />
-              <span>Fit</span>
+              <span>FIT</span>
             </button>
           </div>
 
           {/* Graph DOM */}
-          <div ref={graphContainerRef} className="w-full flex-1 rounded-lg bg-slate-50 dark:bg-[#090d16] mt-3" />
+          <div ref={graphContainerRef} className="w-full flex-1 bg-[#FAFAFA] dark:bg-[#0C0D0E] border border-neutral-200 dark:border-neutral-800 mt-3" />
 
-          {/* Real-Time Active Movement Narrative Bar */}
+          {/* Active Movement Narrative Bar */}
           {activeMovement && (
-            <div className="mt-2.5 p-2.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-lg text-xs flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center space-x-2">
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-300 font-semibold">
-                  HOP {currentHop}
+            <div className="mt-3 p-3 bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 text-xs font-mono flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center space-x-3">
+                <span className="bg-swiss-red text-white text-[9px] font-bold px-2 py-0.5 uppercase tracking-wider">
+                  ACTIVE HOP {activeMovement.hop_depth}
                 </span>
-                <span className="font-mono font-medium text-slate-800 dark:text-slate-200">
+                <span className="font-bold">
                   {activeMovement.source_account_ref} ({activeMovement.source_bank_code}) ➔ {activeMovement.destination_account_ref} ({activeMovement.destination_bank_code})
                 </span>
-                <span className="text-slate-400">•</span>
-                <span className="font-mono font-bold text-slate-900 dark:text-white tabular-nums">
+                <span className="text-neutral-400 dark:text-neutral-600">•</span>
+                <span className="text-swiss-red font-black tabular-nums text-sm">
                   ₹{(activeMovement.amount_minor / 100).toLocaleString()}
                 </span>
-                <span className="text-[10px] text-slate-500">via {activeMovement.rail}</span>
+                <span className="text-[10px] text-neutral-400 dark:text-neutral-600 uppercase font-sans">
+                  via {activeMovement.rail}
+                </span>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-3 text-[10px]">
                 {activeMovement.allocation_method && (
-                  <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-200/70 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                    Token Rule: {activeMovement.allocation_method}
+                  <span className="border border-neutral-700 dark:border-neutral-300 px-2 py-0.5 uppercase tracking-wider">
+                    TOKEN: {activeMovement.allocation_method}
                   </span>
                 )}
-                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                  Confidence: {Math.round(activeMovement.confidence * 100)}%
+                <span className="font-bold text-emerald-400 dark:text-emerald-700">
+                  CONFIDENCE: {Math.round(activeMovement.confidence * 100)}%
                 </span>
               </div>
             </div>
           )}
 
-          {/* Node Legend */}
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 pt-2 border-t border-slate-200 dark:border-slate-800">
-            <div className="flex items-center space-x-4">
-              <span className="flex items-center space-x-1 text-red-600 dark:text-red-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-red-600 inline-block"></span>
-                <span>Root Trigger</span>
+          {/* Swiss Graph Node Legend */}
+          <div className="mt-2.5 flex flex-wrap items-center justify-between text-[10px] font-mono uppercase tracking-wider text-neutral-500 pt-2 border-t border-neutral-200 dark:border-neutral-800">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="flex items-center space-x-1.5 text-swiss-red font-bold">
+                <span className="w-2.5 h-2.5 bg-swiss-red inline-block"></span>
+                <span>ROOT TRIGGER</span>
               </span>
-              <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
-                <span>Origin Candidate</span>
+              <span className="flex items-center space-x-1.5 text-teal-600 dark:text-teal-400 font-bold">
+                <span className="w-2.5 h-2.5 bg-teal-600 inline-block"></span>
+                <span>ORIGIN CANDIDATE</span>
               </span>
-              <span className="flex items-center space-x-1 text-teal-600 dark:text-teal-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-teal-600 inline-block"></span>
-                <span>Upstream Transit</span>
+              <span className="flex items-center space-x-1.5 text-neutral-700 dark:text-neutral-300 font-bold">
+                <span className="w-2.5 h-2.5 border border-neutral-500 inline-block"></span>
+                <span>TRANSIT MULE</span>
               </span>
-              <span className="flex items-center space-x-1 text-blue-600 dark:text-blue-400 font-medium">
-                <span className="w-2 h-2 rounded-full bg-blue-600 inline-block"></span>
-                <span>Downstream Split</span>
-              </span>
-              <span className="flex items-center space-x-1 text-red-700 dark:text-red-400 font-bold">
-                <span className="w-2 h-2 rounded-full bg-red-700 inline-block"></span>
-                <span>Terminal Off-Ramp</span>
+              <span className="flex items-center space-x-1.5 text-red-700 dark:text-red-400 font-bold">
+                <span className="w-2.5 h-2.5 bg-red-800 inline-block"></span>
+                <span>TERMINAL OFF-RAMP</span>
               </span>
             </div>
-            <span>Max 30 accounts visualized</span>
+            <span>STRICT TOPOLOGY CAPPED AT 30 NODES</span>
           </div>
         </div>
 
-        {/* Selected Entity Inspector (1 Col) */}
-        <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-4 h-[520px] overflow-y-auto shadow-apple text-xs space-y-4">
-          <h3 className="text-sm font-semibold text-slate-900 dark:text-white pb-2.5 border-b border-slate-200 dark:border-slate-800">
-            Node / Movement Inspector
-          </h3>
+        {/* Selected Entity Inspector (4 Cols) */}
+        <div className="lg:col-span-4 bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-6 h-[620px] overflow-y-auto space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-900 dark:border-neutral-100">
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-swiss-red font-bold">04.1 //</span>
+              <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 dark:text-white font-mono">
+                Entity Inspector
+              </h2>
+            </div>
+            <span className="text-[9px] font-mono text-neutral-400 uppercase">INTERACTION DRILLDOWN</span>
+          </div>
 
           {selectedEntity ? (
             'account_ref' in selectedEntity ? (
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-500 uppercase font-medium">Account Reference</span>
-                  <div className="font-mono text-sm font-semibold text-slate-900 dark:text-white mt-0.5">{selectedEntity.account_ref}</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">
-                    {selectedEntity.bank_name} ({selectedEntity.bank_code})
+              <div className="space-y-5 text-xs font-mono">
+                <div className="p-4 border-2 border-neutral-900 dark:border-neutral-100 bg-neutral-50 dark:bg-neutral-900">
+                  <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold">
+                    INSPECTED ACCOUNT
+                  </span>
+                  <div className="text-xl font-black text-neutral-900 dark:text-white mt-1">
+                    {selectedEntity.account_ref}
+                  </div>
+                  <div className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 flex items-center gap-2">
+                    <span>BANK:</span>
+                    <strong className="text-neutral-900 dark:text-neutral-100 font-bold">
+                      {selectedEntity.bank_name} ({selectedEntity.bank_code})
+                    </strong>
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-slate-500 font-medium">Lineage Role</span>
-                  <div className="mt-1">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
-                      selectedEntity.is_off_ramp ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' :
-                      selectedEntity.is_origin ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' :
-                      selectedEntity.direction === 'ROOT' ? 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400' :
-                      'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                <div className="border-b border-neutral-200 dark:border-neutral-800 pb-3">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider block mb-1">
+                    TOPOLOGICAL ROLE
+                  </span>
+                  <div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider ${
+                      selectedEntity.is_off_ramp ? 'bg-swiss-red text-white' :
+                      selectedEntity.is_origin ? 'bg-teal-700 text-white' :
+                      selectedEntity.direction === 'ROOT' ? 'bg-swiss-red text-white' :
+                      'border border-neutral-400 text-neutral-800 dark:text-neutral-200'
                     }`}>
                       {selectedEntity.direction} {selectedEntity.is_off_ramp ? '• OFF-RAMP' : ''} {selectedEntity.is_origin ? '• ORIGIN' : ''}
                     </span>
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-slate-500 font-medium">Hop Depth</span>
-                  <div className="font-mono text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
-                    {selectedEntity.hop_depth} hops from trigger
+                <div className="border-b border-neutral-200 dark:border-neutral-800 pb-3">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider block mb-0.5">
+                    HOP DISTANCE
+                  </span>
+                  <div className="text-base font-black text-neutral-900 dark:text-neutral-100">
+                    {selectedEntity.hop_depth} HOPS FROM TRIGGER
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-slate-500 font-medium">Attributed Value</span>
-                  <div className="font-mono text-base font-semibold text-slate-900 dark:text-white mt-0.5 tabular-nums">
+                <div className="border-b border-neutral-200 dark:border-neutral-800 pb-3">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider block mb-0.5">
+                    ATTRIBUTED FUND VOLUME
+                  </span>
+                  <div className="text-2xl font-black text-neutral-900 dark:text-white tabular-nums">
                     ₹{(selectedEntity.amount_attributed_minor / 100).toLocaleString()}
                   </div>
                 </div>
 
                 <div>
-                  <span className="text-slate-500 font-medium">Evidence & Uncertainty</span>
-                  <div className="mt-0.5 text-slate-800 dark:text-slate-200">{selectedEntity.evidence_type}</div>
-                  <div className="mt-1 text-[11px] text-slate-500">
-                    Uncertainty: <span className="font-mono text-slate-800 dark:text-slate-200">{(selectedEntity.uncertainty * 100).toFixed(0)}%</span>
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider block mb-1">
+                    UNCERTAINTY & METRIC
+                  </span>
+                  <div className="text-neutral-800 dark:text-neutral-200 font-sans text-xs">
+                    {selectedEntity.evidence_type}
+                  </div>
+                  <div className="mt-2 text-xs flex items-center justify-between border border-neutral-200 dark:border-neutral-800 p-2">
+                    <span className="text-neutral-500">UNCERTAINTY INDEX:</span>
+                    <span className="font-bold text-neutral-900 dark:text-neutral-100">
+                      {(selectedEntity.uncertainty * 100).toFixed(1)}%
+                    </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="space-y-3">
-                <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                  <span className="text-[10px] text-slate-500 uppercase font-medium">Movement Amount</span>
-                  <div className="font-mono text-base font-semibold text-slate-900 dark:text-white mt-0.5 tabular-nums">
+              <div className="space-y-5 text-xs font-mono">
+                <div className="p-4 border-2 border-neutral-900 dark:border-neutral-100 bg-neutral-50 dark:bg-neutral-900">
+                  <span className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold">
+                    MOVEMENT VOLUME
+                  </span>
+                  <div className="text-2xl font-black text-swiss-red tabular-nums mt-1">
                     ₹{(selectedEntity.amount_minor / 100).toLocaleString()}
                   </div>
-                  <div className="text-[11px] text-slate-500 mt-1">
-                    Via {selectedEntity.rail} • Hop #{selectedEntity.hop_depth}
+                  <div className="text-xs text-neutral-600 dark:text-neutral-400 mt-1 uppercase">
+                    VIA {selectedEntity.rail} • HOP DEPTH #{selectedEntity.hop_depth}
                   </div>
                 </div>
 
-                <div>
-                  <span className="text-slate-500 font-medium">Endpoints</span>
-                  <div className="font-mono text-slate-700 dark:text-slate-300 mt-1 space-y-1">
-                    <div>From: {selectedEntity.source_account_ref} ({selectedEntity.source_bank_code})</div>
-                    <div>To: {selectedEntity.destination_account_ref} ({selectedEntity.destination_bank_code})</div>
+                <div className="border-b border-neutral-200 dark:border-neutral-800 pb-3 space-y-2">
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider block">
+                    TRANSACTION ENDPOINTS
+                  </span>
+                  <div className="text-xs space-y-1">
+                    <div>
+                      <span className="text-neutral-400">SRC: </span>
+                      <strong className="text-neutral-900 dark:text-neutral-100">
+                        {selectedEntity.source_account_ref} ({selectedEntity.source_bank_code})
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-neutral-400">DST: </span>
+                      <strong className="text-neutral-900 dark:text-neutral-100">
+                        {selectedEntity.destination_account_ref} ({selectedEntity.destination_bank_code})
+                      </strong>
+                    </div>
                   </div>
                   {selectedEntity.is_cross_bank && (
-                    <span className="mt-1.5 inline-block text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded">
-                      Inter-Bank Transfer
+                    <span className="mt-2 inline-block text-[9px] font-bold uppercase tracking-wider border border-swiss-red text-swiss-red px-2 py-0.5">
+                      INTER-BANK CLEARING
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <span className="text-slate-500 font-medium">Allocation & Confidence</span>
-                  <div className="mt-0.5 text-slate-800 dark:text-slate-200 font-medium">{selectedEntity.allocation_method}</div>
-                  <div className="mt-1 font-mono text-emerald-600 dark:text-emerald-400">
-                    Confidence: {(selectedEntity.confidence * 100).toFixed(0)}%
+                  <span className="text-[10px] text-neutral-500 uppercase tracking-wider block mb-1">
+                    ALLOCATION RULE & CONFIDENCE
+                  </span>
+                  <div className="text-neutral-800 dark:text-neutral-200 font-bold">
+                    {selectedEntity.allocation_method}
+                  </div>
+                  <div className="mt-2 text-xs flex items-center justify-between border border-neutral-200 dark:border-neutral-800 p-2">
+                    <span className="text-neutral-500">LINEAGE CONFIDENCE:</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      {(selectedEntity.confidence * 100).toFixed(0)}%
+                    </span>
                   </div>
                 </div>
               </div>
             )
           ) : (
-            <div className="py-24 text-center text-slate-400 text-xs">
-              Select any graph node or edge to inspect attribution, institutions, and uncertainty.
+            <div className="py-24 text-center text-neutral-400 font-mono text-xs">
+              TAP ANY GRAPH NODE OR EDGE TO AUDIT METRICS, ENDPOINTS, AND UNCERTAINTY.
             </div>
           )}
         </div>
       </div>
 
-      {/* Timeline & Hop Evidence Bottom Table */}
-      <div className="bg-white dark:bg-[#0f172a] border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-apple">
-        <div className="flex items-center space-x-4 border-b border-slate-200 dark:border-slate-800 pb-3">
+      {/* Structured Swiss Evidence Tabs & Data Tables */}
+      <div className="bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-6 space-y-6">
+        <div className="flex flex-wrap items-center space-x-6 border-b-2 border-neutral-900 dark:border-neutral-100 pb-3">
           <button
             onClick={() => setActiveTabPanel('timeline')}
-            className={`text-xs font-semibold transition-all ${
-              activeTabPanel === 'timeline' ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 pb-2' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+            className={`text-xs font-mono font-bold uppercase tracking-wider transition-colors pb-1 ${
+              activeTabPanel === 'timeline'
+                ? 'text-swiss-red border-b-2 border-swiss-red'
+                : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            Chronological Timeline ({investigation?.timeline.length || 0})
+            01 // CHRONOLOGICAL TIMELINE ({investigation?.timeline.length || 0})
           </button>
           <button
             onClick={() => setActiveTabPanel('hops')}
-            className={`text-xs font-semibold transition-all ${
-              activeTabPanel === 'hops' ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 pb-2' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+            className={`text-xs font-mono font-bold uppercase tracking-wider transition-colors pb-1 ${
+              activeTabPanel === 'hops'
+                ? 'text-swiss-red border-b-2 border-swiss-red'
+                : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            Hop Evidence Rows ({investigation?.edges.length || 0})
+            02 // HOP EVIDENCE ROWS ({investigation?.edges.length || 0})
           </button>
           <button
             onClick={() => setActiveTabPanel('paths')}
-            className={`text-xs font-semibold transition-all ${
-              activeTabPanel === 'paths' ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 pb-2' : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+            className={`text-xs font-mono font-bold uppercase tracking-wider transition-colors pb-1 ${
+              activeTabPanel === 'paths'
+                ? 'text-swiss-red border-b-2 border-swiss-red'
+                : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            Candidate Paths ({investigation?.candidate_paths.length || 0})
+            03 // CANDIDATE PATHS ({investigation?.candidate_paths.length || 0})
           </button>
         </div>
 
         {activeTabPanel === 'timeline' && (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono">
               <thead>
-                <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                  <th className="pb-2 font-medium">Timestamp (UTC)</th>
-                  <th className="pb-2 font-medium">Source</th>
-                  <th className="pb-2 font-medium">Destination</th>
-                  <th className="pb-2 font-medium">Rail</th>
-                  <th className="pb-2 font-medium">Amount</th>
-                  <th className="pb-2 font-medium">Allocation Method</th>
-                  <th className="pb-2 font-medium">Confidence</th>
-                  <th className="pb-2 font-medium">Memo</th>
+                <tr className="border-b-2 border-neutral-900 dark:border-neutral-100 text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  <th className="pb-2.5 font-bold">TIMESTAMP (UTC)</th>
+                  <th className="pb-2.5 font-bold">SOURCE</th>
+                  <th className="pb-2.5 font-bold">DESTINATION</th>
+                  <th className="pb-2.5 font-bold">RAIL</th>
+                  <th className="pb-2.5 font-bold">AMOUNT</th>
+                  <th className="pb-2.5 font-bold">RULE</th>
+                  <th className="pb-2.5 font-bold">CONFIDENCE</th>
+                  <th className="pb-2.5 font-bold">MEMO</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                 {investigation?.timeline.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20">
-                    <td className="py-2.5 text-slate-500">{item.timestamp}</td>
-                    <td className="py-2.5 text-slate-800 dark:text-slate-200">{item.source_account_ref} ({item.source_bank_code})</td>
-                    <td className="py-2.5 text-slate-800 dark:text-slate-200">{item.destination_account_ref} ({item.destination_bank_code})</td>
-                    <td className="py-2.5 text-slate-500 font-sans">{item.rail}</td>
-                    <td className="py-2.5 font-semibold text-slate-900 dark:text-white tabular-nums">₹{(item.amount_minor / 100).toLocaleString()}</td>
-                    <td className="py-2.5 text-slate-500 font-sans">{item.allocation_method}</td>
-                    <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-semibold">{Math.round(item.confidence * 100)}%</td>
-                    <td className="py-2.5 text-slate-500 font-sans italic">{item.memo || '-'}</td>
+                  <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/30">
+                    <td className="py-2.5 text-neutral-500">{item.timestamp}</td>
+                    <td className="py-2.5 font-bold text-neutral-900 dark:text-neutral-100">
+                      {item.source_account_ref} ({item.source_bank_code})
+                    </td>
+                    <td className="py-2.5 font-bold text-neutral-900 dark:text-neutral-100">
+                      {item.destination_account_ref} ({item.destination_bank_code})
+                    </td>
+                    <td className="py-2.5 text-neutral-600 dark:text-neutral-400 font-sans">{item.rail}</td>
+                    <td className="py-2.5 font-black text-neutral-900 dark:text-white tabular-nums">
+                      ₹{(item.amount_minor / 100).toLocaleString()}
+                    </td>
+                    <td className="py-2.5 text-neutral-500 text-[10px]">{item.allocation_method}</td>
+                    <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                      {Math.round(item.confidence * 100)}%
+                    </td>
+                    <td className="py-2.5 text-neutral-400 italic text-[11px] font-sans">{item.memo || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -716,39 +826,45 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
         )}
 
         {activeTabPanel === 'hops' && (
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs font-mono">
               <thead>
-                <tr className="text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                  <th className="pb-2 font-medium">Hop</th>
-                  <th className="pb-2 font-medium">Direction</th>
-                  <th className="pb-2 font-medium">Source</th>
-                  <th className="pb-2 font-medium">Destination</th>
-                  <th className="pb-2 font-medium">Amount</th>
-                  <th className="pb-2 font-medium">Cross-Bank</th>
-                  <th className="pb-2 font-medium">Confidence</th>
+                <tr className="border-b-2 border-neutral-900 dark:border-neutral-100 text-[10px] uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                  <th className="pb-2.5 font-bold">HOP</th>
+                  <th className="pb-2.5 font-bold">DIRECTION</th>
+                  <th className="pb-2.5 font-bold">SOURCE</th>
+                  <th className="pb-2.5 font-bold">DESTINATION</th>
+                  <th className="pb-2.5 font-bold">AMOUNT</th>
+                  <th className="pb-2.5 font-bold">CROSS-BANK</th>
+                  <th className="pb-2.5 font-bold">CONFIDENCE</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 font-mono">
+              <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
                 {investigation?.edges.map((e, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/20">
-                    <td className="py-2.5 text-slate-500">Hop {e.hop_depth}</td>
-                    <td className="py-2.5 font-sans">
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium">
+                  <tr key={idx} className="hover:bg-neutral-50 dark:hover:bg-neutral-800/30">
+                    <td className="py-2.5 font-bold text-swiss-red">HOP {e.hop_depth}</td>
+                    <td className="py-2.5">
+                      <span className="text-[10px] font-bold border border-neutral-300 dark:border-neutral-700 px-1.5 py-0.5">
                         {e.direction}
                       </span>
                     </td>
-                    <td className="py-2.5">{e.source_account_ref} ({e.source_bank_code})</td>
-                    <td className="py-2.5">{e.destination_account_ref} ({e.destination_bank_code})</td>
-                    <td className="py-2.5 font-semibold text-slate-900 dark:text-white tabular-nums">₹{(e.amount_minor / 100).toLocaleString()}</td>
-                    <td className="py-2.5 font-sans">
+                    <td className="py-2.5 font-bold">{e.source_account_ref} ({e.source_bank_code})</td>
+                    <td className="py-2.5 font-bold">{e.destination_account_ref} ({e.destination_bank_code})</td>
+                    <td className="py-2.5 font-black text-neutral-900 dark:text-white tabular-nums">
+                      ₹{(e.amount_minor / 100).toLocaleString()}
+                    </td>
+                    <td className="py-2.5">
                       {e.is_cross_bank ? (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-medium">YES</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900 px-1.5 py-0.5">
+                          YES
+                        </span>
                       ) : (
-                        <span className="text-slate-400">NO</span>
+                        <span className="text-neutral-400">NO</span>
                       )}
                     </td>
-                    <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-semibold">{Math.round(e.confidence * 100)}%</td>
+                    <td className="py-2.5 text-emerald-600 dark:text-emerald-400 font-bold">
+                      {Math.round(e.confidence * 100)}%
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -757,11 +873,15 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
         )}
 
         {activeTabPanel === 'paths' && (
-          <div className="mt-4 space-y-2 font-mono text-xs">
+          <div className="space-y-3 font-mono text-xs">
             {investigation?.candidate_paths.map((p, idx) => (
-              <div key={idx} className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center space-x-2">
-                <span className="text-slate-400 font-sans text-[11px] font-medium">Path #{idx + 1}:</span>
-                <span className="text-slate-800 dark:text-slate-200 font-semibold">{p.join('  ⟶  ')}</span>
+              <div key={idx} className="p-4 border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 flex items-center space-x-3">
+                <span className="text-swiss-red font-bold uppercase text-[10px]">
+                  PATH #{String(idx + 1).padStart(2, '0')}:
+                </span>
+                <span className="text-neutral-900 dark:text-neutral-100 font-bold">
+                  {p.join('  ⟶  ')}
+                </span>
               </div>
             ))}
           </div>
@@ -770,3 +890,4 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
     </div>
   );
 };
+
