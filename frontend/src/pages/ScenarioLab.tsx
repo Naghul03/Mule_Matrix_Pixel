@@ -66,7 +66,7 @@ export const ScenarioLab: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2 text-[11px] font-mono uppercase tracking-widest text-swiss-red font-bold">
-              <span>05 // EVALUATION & BENCHMARKS</span>
+              <span>EVALUATION & BENCHMARKS</span>
               <span className="text-neutral-400">—</span>
               <span className="text-neutral-500">GROUND TRUTH CALIBRATION</span>
             </div>
@@ -278,7 +278,7 @@ export const ScenarioLab: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b-2 border-neutral-900 dark:border-neutral-100 gap-2">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-swiss-red font-bold">05.1 //</span>
+              <span className="w-1.5 h-1.5 bg-swiss-red inline-block" />
               <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 dark:text-white font-mono">
                 Deterministic Scenario Catalogue ({scenarios.length})
               </h2>

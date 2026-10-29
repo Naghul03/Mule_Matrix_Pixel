@@ -240,7 +240,7 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
           <div className="space-y-2">
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest uppercase text-neutral-500">
               <span className="w-2 h-2 bg-[#E30613] inline-block" />
-              <span className="font-bold text-neutral-900 dark:text-white">02 // SIMULATION ENGINE</span>
+              <span className="font-bold text-neutral-900 dark:text-white">SIMULATION ENGINE</span>
               <span>•</span>
               <span>20 DETERMINISTIC SCENARIO TYPOLOGIES</span>
             </div>
@@ -271,7 +271,7 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 pb-5 border-b border-neutral-200 dark:border-neutral-800">
           <div className="space-y-1.5 flex-1 max-w-xl">
             <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-widest block">
-              CATALOG SELECTION // 20 SCENARIOS
+              CATALOG SELECTION
             </span>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <select
@@ -352,7 +352,7 @@ export const TransferSimulator: React.FC<TransferSimulatorProps> = ({ onNavigate
           <div className="flex items-center justify-between pb-3 border-b border-neutral-200 dark:border-neutral-800">
             <div>
               <span className="text-[10px] font-mono font-bold text-[#E30613] uppercase tracking-wider block">
-                DIRECT SETTLEMENT // LEDGER INJECTION
+                DIRECT SETTLEMENT
               </span>
               <h3 className="text-sm font-black uppercase text-neutral-900 dark:text-white mt-0.5">
                 Submit Isolated Transfer

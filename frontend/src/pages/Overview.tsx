@@ -194,7 +194,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
           <div className="space-y-2 max-w-3xl">
             <div className="flex items-center space-x-2 text-[10px] font-mono tracking-widest uppercase text-neutral-500">
               <span className="w-2 h-2 bg-[#E30613] inline-block" />
-              <span className="font-bold text-neutral-900 dark:text-white">01 // OPERATIONAL OVERVIEW</span>
+              <span className="font-bold text-neutral-900 dark:text-white">OPERATIONAL OVERVIEW</span>
               <span>•</span>
               <span>SYNTHETIC INTER-BANK SURVEILLANCE</span>
             </div>
@@ -346,9 +346,6 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-y md:divide-y-0 divide-neutral-200 dark:divide-neutral-800">
           {/* Cell 01 */}
           <div className="p-5 space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400 uppercase">
-              <span>01 / METRIC</span>
-            </div>
             <div className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white tabular-nums font-mono">
               {stats.transactions}
             </div>
@@ -360,12 +357,11 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
           {/* Cell 02 */}
           <div className="p-5 space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400 uppercase">
-              <span>02 / METRIC</span>
+            <div className="flex items-center justify-between">
+              <div className="text-2xl sm:text-3xl font-black text-[#E30613] tabular-nums font-mono">
+                {stats.alerts}
+              </div>
               {stats.alerts > 0 && <span className="w-1.5 h-1.5 bg-[#E30613] inline-block" />}
-            </div>
-            <div className="text-2xl sm:text-3xl font-black text-[#E30613] tabular-nums font-mono">
-              {stats.alerts}
             </div>
             <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">
               Active Alerts
@@ -375,9 +371,6 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
           {/* Cell 03 */}
           <div className="p-5 space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400 uppercase">
-              <span>03 / METRIC</span>
-            </div>
             <div className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white tabular-nums font-mono">
               {recentAlerts.length}
             </div>
@@ -389,9 +382,6 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
           {/* Cell 04 */}
           <div className="p-5 space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400 uppercase">
-              <span>04 / METRIC</span>
-            </div>
             <div className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white tabular-nums font-mono">
               {stats.banks}
             </div>
@@ -403,9 +393,6 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
           {/* Cell 05 */}
           <div className="p-5 space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400 uppercase">
-              <span>05 / METRIC</span>
-            </div>
             <div className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white tabular-nums font-mono">
               {stats.accounts}
             </div>
@@ -417,9 +404,6 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
 
           {/* Cell 06 */}
           <div className="p-5 space-y-1">
-            <div className="flex items-center justify-between text-[10px] font-mono font-bold text-neutral-400 uppercase">
-              <span>06 / METRIC</span>
-            </div>
             <div className="text-2xl sm:text-3xl font-black text-neutral-900 dark:text-white tabular-nums font-mono">
               {stats.investigations}
             </div>
@@ -431,18 +415,16 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
         </div>
       </section>
 
-      {/* 03 / OPERATIONAL DATA — Asymmetric 2:1 Layout */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column (2 Cols): Alerts & Movements */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Recent Detection Alerts */}
-          <div className="bg-white dark:bg-[#151619] border border-neutral-300 dark:border-neutral-700 p-5">
-            <div className="flex items-center justify-between pb-3.5 border-b border-neutral-200 dark:border-neutral-800">
-              <div>
-                <span className="text-[10px] font-mono font-bold text-[#E30613] uppercase tracking-wider block">
-                  DETECTIONS // EXPLAINABLE RULES
-                </span>
-                <h3 className="text-sm font-black uppercase text-neutral-900 dark:text-white mt-0.5">
+      {/* OPERATIONAL DATA — Balanced 2-Column Grid */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Detection Alerts */}
+        <div className="bg-white dark:bg-[#151619] border border-neutral-300 dark:border-neutral-700 p-5">
+          <div className="flex items-center justify-between pb-3.5 border-b border-neutral-200 dark:border-neutral-800">
+            <div>
+              <span className="text-[10px] font-mono font-bold text-[#E30613] uppercase tracking-wider block">
+                DETECTIONS
+              </span>
+              <h3 className="text-sm font-black uppercase text-neutral-900 dark:text-white mt-0.5">
                   Recent Suspicious Mule Alerts
                 </h3>
               </div>
@@ -476,7 +458,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
                           alert.severity === 'HIGH' ? 'bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900' :
                           'bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-neutral-200'
                         }`}>
-                          SCORE: {alert.risk_score} // {alert.severity}
+                          SCORE: {alert.risk_score} • {alert.severity}
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-1.5 text-xs text-neutral-500 font-mono">
@@ -506,7 +488,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             <div className="flex items-center justify-between pb-3.5 border-b border-neutral-200 dark:border-neutral-800">
               <div>
                 <span className="text-[10px] font-mono font-bold text-neutral-500 uppercase tracking-wider block">
-                  LEDGER // IMMUTABLE SETTLEMENTS
+                  SETTLEMENTS
                 </span>
                 <h3 className="text-sm font-black uppercase text-neutral-900 dark:text-white mt-0.5">
                   Recent Multi-Bank Transactions
@@ -565,63 +547,6 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
               </table>
             </div>
           </div>
-        </div>
-
-        {/* Right Column (1 Col): Live Event Stream */}
-        <div className="bg-white dark:bg-[#151619] border border-neutral-300 dark:border-neutral-700 p-5 flex flex-col h-[640px]">
-          <div className="flex items-center justify-between pb-3.5 border-b border-neutral-200 dark:border-neutral-800">
-            <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 bg-[#E30613] inline-block" />
-              <h3 className="text-xs font-black uppercase tracking-wider text-neutral-900 dark:text-white">
-                Event Log // SSE Active
-              </h3>
-            </div>
-            <span className="text-[9px] font-mono text-neutral-400 uppercase">Live Stream</span>
-          </div>
-
-          <div className="mt-3 flex-1 overflow-y-auto space-y-2 pr-1 font-mono">
-            {liveEvents.length === 0 ? (
-              <div className="py-16 text-center text-neutral-400 text-xs font-mono">
-                Awaiting real-time simulation events...
-              </div>
-            ) : (
-              liveEvents.map((evt, idx) => (
-                <div key={idx} className="p-2 border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/60 text-xs space-y-1">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="font-bold text-[#E30613] uppercase">
-                      {evt.type}
-                    </span>
-                    <span className="text-neutral-400 text-[9px]">
-                      {new Date(evt.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <div className="text-neutral-800 dark:text-neutral-200 text-[11px] break-all leading-tight">
-                    {evt.type === 'TRANSFER_POSTED' && (
-                      <span>
-                        ₹{(evt.payload.amount_minor / 100).toLocaleString()} • {evt.payload.source_bank_code} → {evt.payload.destination_bank_code}
-                      </span>
-                    )}
-                    {evt.type === 'ALERT_CREATED' && (
-                      <span className="text-[#E30613] font-bold">
-                        ALERT: {evt.payload.account_ref} ({evt.payload.severity}) - Risk: {evt.payload.risk_score}
-                      </span>
-                    )}
-                    {evt.type === 'TRACE_UPDATED' && (
-                      <span className="text-neutral-700 dark:text-neutral-300">
-                        Lineage: {evt.payload.accounts_discovered} nodes ({evt.payload.stop_reason})
-                      </span>
-                    )}
-                    {evt.type === 'SIMULATION_STEP' && (
-                      <span>
-                        Scenario {evt.payload.scenario_id}: +{evt.payload.transactions_posted} txs
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
       </section>
     </div>
   );

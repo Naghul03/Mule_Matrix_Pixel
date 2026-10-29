@@ -7,7 +7,7 @@ export const GlobalNotice: React.FC = () => {
       <div className="flex items-center space-x-2">
         <span className="w-1.5 h-1.5 bg-[#E30613] inline-block"></span>
         <span className="font-bold text-neutral-900 dark:text-white uppercase tracking-wider text-[10px]">
-          SYS // SYNTHETIC FINANCIAL LEDGER
+          SYNTHETIC FINANCIAL LEDGER
         </span>
         <span className="text-neutral-300 dark:text-neutral-700">|</span>
         <span className="text-neutral-500 dark:text-neutral-400 truncate max-w-xl">

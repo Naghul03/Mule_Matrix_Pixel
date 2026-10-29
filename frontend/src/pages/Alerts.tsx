@@ -81,7 +81,7 @@ export const Alerts: React.FC<AlertsProps> = ({ onNavigateTab }) => {
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2 text-[11px] font-mono uppercase tracking-widest text-swiss-red font-bold">
-              <span>03 // DETECTIONS & RISK</span>
+              <span>DETECTIONS & RISK</span>
               <span className="text-neutral-400">—</span>
               <span className="text-neutral-500">AUDIT DOSSIER</span>
             </div>
@@ -257,7 +257,7 @@ export const Alerts: React.FC<AlertsProps> = ({ onNavigateTab }) => {
         <div className="lg:col-span-5 bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-6 space-y-6">
           <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-900 dark:border-neutral-100">
             <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-swiss-red font-bold">03.1 //</span>
+              <span className="w-1.5 h-1.5 bg-swiss-red inline-block" />
               <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 dark:text-white font-mono">
                 Evidence Dossier
               </h2>

@@ -72,7 +72,7 @@ export const Settings: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2 text-[11px] font-mono uppercase tracking-widest text-swiss-red font-bold">
-              <span>06 // SYSTEM & RULES</span>
+              <span>SYSTEM & RULES</span>
               <span className="text-neutral-400">—</span>
               <span className="text-neutral-500">ENGINE CONFIGURATION</span>
             </div>
@@ -106,7 +106,7 @@ export const Settings: React.FC = () => {
         <div className="bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-6 space-y-6">
           <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-900 dark:border-neutral-100">
             <div className="flex items-center space-x-2">
-              <span className="text-[10px] uppercase tracking-widest text-swiss-red font-bold">06.1 //</span>
+              <span className="w-1.5 h-1.5 bg-swiss-red inline-block" />
               <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 dark:text-white">
                 Detection Algorithm Parameters
               </h2>
@@ -209,7 +209,7 @@ export const Settings: React.FC = () => {
         <div className="bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-6 space-y-6">
           <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-900 dark:border-neutral-100">
             <div className="flex items-center space-x-2">
-              <span className="text-[10px] uppercase tracking-widest text-swiss-red font-bold">06.2 //</span>
+              <span className="w-1.5 h-1.5 bg-swiss-red inline-block" />
               <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 dark:text-white">
                 Lineage Traversal Budgets
               </h2>

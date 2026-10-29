@@ -319,7 +319,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2 text-[11px] font-mono uppercase tracking-widest text-swiss-red font-bold">
-              <span>04 // FORENSIC LINEAGE</span>
+              <span>FORENSIC LINEAGE</span>
               <span className="text-neutral-400">—</span>
               <span className="text-neutral-500">RECONSTRUCTED WORKSPACE</span>
             </div>
@@ -365,7 +365,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
           <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mt-6">
             <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
               <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
-                01 // NODES
+                NODES
               </span>
               <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.accounts_discovered}
@@ -374,7 +374,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
 
             <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
               <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
-                02 // BANKS
+                BANKS
               </span>
               <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.banks_crossed}
@@ -383,7 +383,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
 
             <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
               <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
-                03 // MOVEMENTS
+                MOVEMENTS
               </span>
               <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.transactions_traversed}
@@ -392,7 +392,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
 
             <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
               <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
-                04 // MAX DEPTH
+                MAX DEPTH
               </span>
               <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.max_hop_depth} <span className="text-xs font-normal text-neutral-400">HOPS</span>
@@ -401,7 +401,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
 
             <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
               <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
-                05 // OFF-RAMPS
+                OFF-RAMPS
               </span>
               <span className="text-2xl font-black font-mono text-swiss-red tabular-nums mt-0.5 block">
                 {investigation.summary_metrics_json.off_ramps_found}
@@ -410,7 +410,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
 
             <div className="border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#151619] p-3">
               <span className="text-[10px] font-mono uppercase tracking-widest text-neutral-500 block">
-                06 // CONFIDENCE
+                CONFIDENCE
               </span>
               <span className="text-2xl font-black font-mono text-neutral-900 dark:text-white tabular-nums mt-0.5 block">
                 {Math.round(investigation.summary_metrics_json.avg_confidence * 100)}%
@@ -611,7 +611,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
         <div className="lg:col-span-4 bg-white dark:bg-[#151619] border border-neutral-200 dark:border-neutral-800 p-6 h-[620px] overflow-y-auto space-y-6">
           <div className="flex items-center justify-between pb-3 border-b-2 border-neutral-900 dark:border-neutral-100">
             <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-mono uppercase tracking-widest text-swiss-red font-bold">04.1 //</span>
+              <span className="w-1.5 h-1.5 bg-swiss-red inline-block" />
               <h2 className="text-xs font-bold uppercase tracking-widest text-neutral-900 dark:text-white font-mono">
                 Entity Inspector
               </h2>
@@ -760,7 +760,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
                 : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            01 // CHRONOLOGICAL TIMELINE ({investigation?.timeline.length || 0})
+            CHRONOLOGICAL TIMELINE ({investigation?.timeline.length || 0})
           </button>
           <button
             onClick={() => setActiveTabPanel('hops')}
@@ -770,7 +770,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
                 : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            02 // HOP EVIDENCE ROWS ({investigation?.edges.length || 0})
+            HOP EVIDENCE ROWS ({investigation?.edges.length || 0})
           </button>
           <button
             onClick={() => setActiveTabPanel('paths')}
@@ -780,7 +780,7 @@ export const InvestigationWorkspace: React.FC<InvestigationWorkspaceProps> = ({ 
                 : 'text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-200'
             }`}
           >
-            03 // CANDIDATE PATHS ({investigation?.candidate_paths.length || 0})
+            CANDIDATE PATHS ({investigation?.candidate_paths.length || 0})
           </button>
         </div>
 

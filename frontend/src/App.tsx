@@ -87,11 +87,11 @@ const AppContent: React.FC = () => {
             <span className="font-bold text-neutral-900 dark:text-white uppercase tracking-wider">
               Mule Matrix
             </span>
-            <span>//</span>
-            <span>SWISS INTERNATIONAL FINANCIAL FORENSICS</span>
+            <span className="text-neutral-400">•</span>
+            <span>FINANCIAL FORENSICS ENGINE</span>
           </div>
           <div className="text-[10px] tracking-wider uppercase text-neutral-400">
-            RASTER // 08-COL MODULAR • ZERO-PII PROGRAMMABLE e-RUPEE AUDIT
+            ZERO-PII PROGRAMMABLE e-RUPEE AUDIT
           </div>
         </div>
       </footer>

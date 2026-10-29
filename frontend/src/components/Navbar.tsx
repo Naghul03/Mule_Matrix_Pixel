@@ -59,7 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 Mule Matrix
               </span>
               <span className="text-[9px] font-mono tracking-widest text-neutral-500 uppercase">
-                Raster // Forensics
+                Financial Forensics
               </span>
             </div>
           </div>
