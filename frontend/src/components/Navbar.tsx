@@ -49,7 +49,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="flex items-center space-x-3 cursor-pointer select-none border-r border-neutral-200 dark:border-neutral-800 pr-5"
             onClick={() => setActiveTab('overview')}
           >
-            <div className="w-5 h-5 bg-[#E30613] flex-shrink-0" />
+            <img
+              src="/logo-icon.png"
+              alt="Mule Matrix Logo"
+              className="w-6 h-6 object-contain flex-shrink-0 rounded-sm"
+            />
             <div className="flex flex-col">
               <span className="font-black tracking-tight text-neutral-900 dark:text-white text-sm uppercase leading-tight font-sans">
                 Mule Matrix
