@@ -200,8 +200,7 @@ export const Overview: React.FC<OverviewProps> = ({ onNavigateTab }) => {
             </div>
 
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black uppercase tracking-tight text-neutral-900 dark:text-white leading-[0.95]">
-              Form folgt Raster. <br />
-              <span className="text-neutral-500 dark:text-neutral-400">Cross-Bank Mule Intelligence.</span>
+              Cross-Bank Mule Intelligence.
             </h1>
 
             <p className="text-xs sm:text-sm text-neutral-600 dark:text-neutral-400 max-w-2xl font-normal leading-relaxed pt-1">
