@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider } from './context/ThemeContext';
-import { GlobalNotice } from './components/GlobalNotice';
 import { Navbar, TabType } from './components/Navbar';
 import { Overview } from './pages/Overview';
 import { TransferSimulator } from './pages/TransferSimulator';
@@ -58,9 +57,6 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-[#0C0D0E] text-[#111111] dark:text-[#F4F4F4] flex flex-col font-sans transition-colors duration-150">
-      {/* Top Global Notice Strip */}
-      <GlobalNotice />
-
       {/* Main Swiss Top Navbar */}
       <Navbar
         activeTab={activeTab}
